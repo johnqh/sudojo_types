@@ -1,5 +1,5 @@
 {
-  "name": "@sudobility/sudojo-types",
+  "name": "@sudobility/sudojo_types",
   "version": "1.0.0",
   "description": "TypeScript types for Sudojo API - Sudoku learning platform",
   "main": "./dist/index.cjs",
