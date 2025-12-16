@@ -243,3 +243,19 @@ export interface HealthCheckData {
   version: string;
   status: string;
 }
+
+// =============================================================================
+// Subscription Types (RevenueCat integration)
+// =============================================================================
+
+export interface RevenueCatEntitlement {
+  expires_date: string | null;
+  grace_period_expires_date: string | null;
+  product_identifier: string;
+  purchase_date: string;
+}
+
+export interface SubscriptionResult {
+  hasSubscription: boolean;
+  entitlement: RevenueCatEntitlement | null;
+}
