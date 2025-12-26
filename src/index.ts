@@ -259,3 +259,121 @@ export interface SubscriptionResult {
   hasSubscription: boolean;
   entitlement: RevenueCatEntitlement | null;
 }
+
+// =============================================================================
+// Solver Types (Sudoku solving/validation/generation)
+// =============================================================================
+
+/** Pencilmark data for a Sudoku board */
+export interface SolverPencilmarks {
+  /** Whether pencilmarks were auto-generated */
+  auto: boolean;
+  /** Comma-delimited string of 81 pencilmark entries (e.g., "124,45,...") */
+  pencilmarks: string;
+}
+
+/** Board state in solver responses */
+export interface SolverBoard {
+  /** Original puzzle (81-char string, 0 = empty) */
+  original: string;
+  /** User's current input (81-char string, 0 = empty) */
+  user: string | null;
+  /** Puzzle solution (81-char string) */
+  solution: string | null;
+  /** Pencilmark data */
+  pencilmarks: SolverPencilmarks | null;
+}
+
+/** Area highlight type */
+export type SolverAreaType = 'row' | 'column' | 'block';
+
+/** Color for highlighting */
+export type SolverColor =
+  | 'none'
+  | 'clear'
+  | 'gray'
+  | 'blue'
+  | 'green'
+  | 'yellow'
+  | 'orange'
+  | 'red'
+  | 'white'
+  | 'black';
+
+/** Area to highlight in a hint */
+export interface SolverHintArea {
+  /** Type of area (row, column, or block) */
+  type: SolverAreaType;
+  /** Highlight color */
+  color: SolverColor;
+  /** Area index (0-8) */
+  index: number;
+}
+
+/** Actions to perform on a cell */
+export interface SolverCellActions {
+  /** Digit to select as user input */
+  select: string;
+  /** Digit marked as wrong */
+  unselect: string;
+  /** Candidates to add as pencilmarks */
+  add: string;
+  /** Candidates to remove from pencilmarks */
+  remove: string;
+  /** Candidates to highlight */
+  highlight: string;
+}
+
+/** Cell information in a hint */
+export interface SolverHintCell {
+  /** Row index (0-8) */
+  row: number;
+  /** Column index (0-8) */
+  column: number;
+  /** Highlight color */
+  color: SolverColor;
+  /** Whether to fill the cell background */
+  fill: boolean;
+  /** Actions to perform on this cell */
+  actions: SolverCellActions;
+}
+
+/** A single hint step for solving */
+export interface SolverHintStep {
+  /** Name of the solving technique */
+  title: string;
+  /** Explanation of the technique */
+  text: string;
+  /** Areas to highlight */
+  areas: SolverHintArea[];
+  /** Cells involved in the hint */
+  cells: SolverHintCell[];
+}
+
+/** Response data for /solver/solve endpoint */
+export interface SolveData {
+  /** Current board state */
+  board: SolverBoard;
+  /** Hint steps (up to 3) */
+  hints: SolverHintStep[];
+}
+
+/** Response data for /solver/validate endpoint */
+export interface ValidateData {
+  /** Board with solution */
+  board: SolverBoard;
+  /** Always null for validate */
+  hints: null;
+}
+
+/** Response data for /solver/generate endpoint */
+export interface GenerateData {
+  /** Generated puzzle with solution */
+  board: SolverBoard;
+  /** Difficulty level (1-12) */
+  level: number;
+  /** Count of techniques required to solve */
+  techniques: number;
+  /** Always null for generate */
+  hints: null;
+}
