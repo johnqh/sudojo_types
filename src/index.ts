@@ -350,12 +350,22 @@ export interface SolverHintStep {
   cells: SolverHintCell[];
 }
 
+/** Hints data from solver */
+export interface SolverHints {
+  /** Difficulty level */
+  level: number;
+  /** Count of techniques */
+  techniques: number;
+  /** Hint steps (up to 3) */
+  steps: SolverHintStep[];
+}
+
 /** Response data for /solver/solve endpoint */
 export interface SolveData {
   /** Current board state */
   board: SolverBoard;
-  /** Hint steps (up to 3) */
-  hints: SolverHintStep[];
+  /** Hints with steps */
+  hints: SolverHints;
 }
 
 /** Response data for /solver/validate endpoint */
