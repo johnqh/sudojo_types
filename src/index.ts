@@ -360,10 +360,20 @@ export interface SolverHints {
   steps: SolverHintStep[];
 }
 
+/** Board data wrapper from solver response */
+export interface SolverBoardData {
+  /** Difficulty level */
+  level: number;
+  /** Count of techniques */
+  techniques: number;
+  /** Board state */
+  board: SolverBoard;
+}
+
 /** Response data for /solver/solve endpoint */
 export interface SolveData {
   /** Current board state */
-  board: SolverBoard;
+  board: SolverBoardData;
   /** Hints with steps */
   hints: SolverHints;
 }
