@@ -397,3 +397,122 @@ export interface GenerateData {
   /** Always null for generate */
   hints: null;
 }
+
+// =============================================================================
+// Technique Bitfield (matches SudokuDefines.h enum SudokuTechnique)
+// =============================================================================
+
+/**
+ * Technique IDs matching the solver engine's SudokuTechnique enum.
+ * Used as bitfield values in boards.techniques and technique_examples.techniques_bitfield.
+ */
+export enum TechniqueId {
+  FULL_HOUSE = 1,
+  HIDDEN_SINGLE = 2,
+  NAKED_SINGLE = 3,
+  HIDDEN_PAIR = 4,
+  NAKED_PAIR = 5,
+  LOCKED_CANDIDATES = 6,
+  HIDDEN_TRIPLE = 7,
+  NAKED_TRIPLE = 8,
+  HIDDEN_QUAD = 9,
+  NAKED_QUAD = 10,
+  X_WING = 11,
+  SWORDFISH = 12,
+  JELLYFISH = 13,
+  XY_WING = 14,
+  FINNED_X_WING = 15,
+  SQUIRMBAG = 16,
+  FINNED_SWORDFISH = 17,
+  FINNED_JELLYFISH = 18,
+  XYZ_WING = 19,
+  WXYZ_WING = 20,
+  ALMOST_LOCKED_SETS = 21,
+  FINNED_SQUIRMBAG = 22,
+  ALS_CHAIN = 23,
+}
+
+/** Map technique title strings (from solver API hints.steps[].title) to TechniqueId */
+export const TECHNIQUE_TITLE_TO_ID: Record<string, TechniqueId> = {
+  'Full House': TechniqueId.FULL_HOUSE,
+  'Hidden Single': TechniqueId.HIDDEN_SINGLE,
+  'Naked Single': TechniqueId.NAKED_SINGLE,
+  'Hidden Pair': TechniqueId.HIDDEN_PAIR,
+  'Naked Pair': TechniqueId.NAKED_PAIR,
+  'Locked Candidates': TechniqueId.LOCKED_CANDIDATES,
+  'Hidden Triple': TechniqueId.HIDDEN_TRIPLE,
+  'Naked Triple': TechniqueId.NAKED_TRIPLE,
+  'Hidden Quad': TechniqueId.HIDDEN_QUAD,
+  'Naked Quad': TechniqueId.NAKED_QUAD,
+  'X-Wing': TechniqueId.X_WING,
+  'Swordfish': TechniqueId.SWORDFISH,
+  'Jellyfish': TechniqueId.JELLYFISH,
+  'XY-Wing': TechniqueId.XY_WING,
+  'Finned X-Wing': TechniqueId.FINNED_X_WING,
+  'Squirmbag': TechniqueId.SQUIRMBAG,
+  'Finned Swordfish': TechniqueId.FINNED_SWORDFISH,
+  'Finned Jellyfish': TechniqueId.FINNED_JELLYFISH,
+  'XYZ-Wing': TechniqueId.XYZ_WING,
+  'WXYZ-Wing': TechniqueId.WXYZ_WING,
+  'Almost Locked Sets': TechniqueId.ALMOST_LOCKED_SETS,
+  'Finned Squirmbag': TechniqueId.FINNED_SQUIRMBAG,
+  'ALS-Chain': TechniqueId.ALS_CHAIN,
+};
+
+/** Convert a TechniqueId to its bit position in the bitfield */
+export function techniqueToBit(techniqueId: TechniqueId): number {
+  return 1 << (techniqueId - 1);
+}
+
+/** Check if a technique is present in a bitfield */
+export function hasTechnique(bitfield: number, techniqueId: TechniqueId): boolean {
+  return (bitfield & techniqueToBit(techniqueId)) !== 0;
+}
+
+/** Add a technique to a bitfield */
+export function addTechnique(bitfield: number, techniqueId: TechniqueId): number {
+  return bitfield | techniqueToBit(techniqueId);
+}
+
+// =============================================================================
+// Technique Examples (for tutorials)
+// =============================================================================
+
+export interface TechniqueExample {
+  uuid: string;
+  /** Board state (81-char string, current position) */
+  board: string;
+  /** Pencilmarks at this state (comma-delimited) */
+  pencilmarks: string | null;
+  /** Solution for reference */
+  solution: string;
+  /** Bitfield of all techniques applicable at this board state */
+  techniques_bitfield: number;
+  /** Primary technique (the one solver would use first) */
+  primary_technique: number;
+  /** Hint data as JSON string */
+  hint_data: string | null;
+  /** Source board UUID for reference */
+  source_board_uuid: string | null;
+  created_at: Date | null;
+}
+
+export interface TechniqueExampleCreateRequest {
+  board: string;
+  pencilmarks: Optional<string>;
+  solution: string;
+  techniques_bitfield: number;
+  primary_technique: number;
+  hint_data: Optional<string>;
+  source_board_uuid: Optional<string | null>;
+}
+
+export interface TechniqueExampleUpdateRequest {
+  board: Optional<string>;
+  pencilmarks: Optional<string>;
+  solution: Optional<string>;
+  techniques_bitfield: Optional<number>;
+  primary_technique: Optional<number>;
+  hint_data: Optional<string>;
+  source_board_uuid: Optional<string | null>;
+}
