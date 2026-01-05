@@ -456,7 +456,7 @@ export const TECHNIQUE_TITLE_TO_ID: Record<string, TechniqueId> = {
   'WXYZ-Wing': TechniqueId.WXYZ_WING,
   'Almost Locked Sets': TechniqueId.ALMOST_LOCKED_SETS,
   'Finned Squirmbag': TechniqueId.FINNED_SQUIRMBAG,
-  'ALS-Chain': TechniqueId.ALS_CHAIN,
+  'ALS Chain': TechniqueId.ALS_CHAIN,
 };
 
 /** Convert a TechniqueId to its bit position in the bitfield */
