@@ -4,26 +4,31 @@ This file provides context for AI assistants working on this codebase.
 
 ## Project Overview
 
-`@sudobility/sudojo-types` is a TypeScript types package for the Sudojo API (a Sudoku learning platform). It contains:
+`@sudobility/sudojo_types` is a TypeScript types package for the Sudojo API (a Sudoku learning platform). It contains:
 - Entity types (database models)
 - Request/response types for API endpoints
 - Query parameter types
 - Helper functions for creating responses
 
-## Commands
+Published to npm under `@sudobility` scope with public access.
+
+## Runtime & Package Manager
+
+**This project uses Bun.** Do not use npm, yarn, or pnpm.
 
 ```bash
-npm run verify       # Run all checks (typecheck, lint, test, build)
-npm run typecheck    # Type-check without emitting
-npm run lint         # Run ESLint
-npm run lint:fix     # Run ESLint with auto-fix
-npm run format       # Format code with Prettier
-npm run format:check # Check formatting without changes
-npm run build        # Build ESM and CJS outputs to dist/
-npm run clean        # Remove dist/
-npm run dev          # Watch mode for development
-npm test             # Run tests once
-npm run test:watch   # Run tests in watch mode
+bun install           # Install dependencies
+bun run verify        # Run all checks (typecheck, lint, test, build)
+bun run typecheck     # Type-check without emitting
+bun run lint          # Run ESLint
+bun run lint:fix      # Run ESLint with auto-fix
+bun run format        # Format code with Prettier
+bun run format:check  # Check formatting without changes
+bun run build         # Build ESM and CJS outputs to dist/
+bun run clean         # Remove dist/
+bun run dev           # Watch mode for development
+bun run test          # Run tests once
+bun run test:watch    # Run tests in watch mode
 ```
 
 ## Code Conventions
@@ -71,7 +76,7 @@ Types in `src/index.ts` are organized into sections:
 
 - Single quotes, semicolons, trailing commas (es5)
 - 80 character line width, 2 space indentation
-- Run `npm run format` before committing
+- Run `bun run format` before committing
 
 ## Testing
 
@@ -115,3 +120,17 @@ Package is published to npm under `@sudobility` scope with public access.
 **Manual**: Run `npm publish` (triggers `prepublishOnly` to verify and build)
 
 **Automatic**: Bump version in `package.json` and push to `main` - CI/CD will publish automatically.
+
+## Common Tasks
+
+### Add New Type
+1. Define the type in `src/index.ts` in the appropriate section
+2. Export it from the file
+3. Add type tests in `src/index.test.ts`
+4. Run `bun run verify` to ensure everything passes
+
+### Update Existing Type
+1. Modify the type definition
+2. Update any dependent types
+3. Update tests to reflect changes
+4. Run `bun run verify`

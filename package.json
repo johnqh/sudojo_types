@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/sudojo_types",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "TypeScript types for Sudojo API - Sudoku learning platform",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -13,9 +13,9 @@
     }
   },
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs",
+    "build": "bun run build:esm && bun run build:cjs",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json && npm run build:cjs-rename",
+    "build:cjs": "tsc -p tsconfig.cjs.json && bun run build:cjs-rename",
     "build:cjs-rename": "find dist -name '*.js' -not -name '*.cjs' -exec sh -c 'cp \"$1\" \"${1%.js}.cjs\"' _ {} \\;",
     "clean": "rimraf dist",
     "dev": "tsc --watch",
@@ -27,8 +27,8 @@
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "prepublishOnly": "npm run clean && npm run verify"
+    "verify": "bun run typecheck && bun run lint && bun run test && bun run build",
+    "prepublishOnly": "bun run clean && bun run verify"
   },
   "files": [
     "dist/**/*",
@@ -44,11 +44,11 @@
   "author": "Sudobility",
   "license": "MIT",
   "peerDependencies": {
-    "@sudobility/types": "^1.9.41"
+    "@sudobility/types": "^1.9.42"
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",
-    "@sudobility/types": "^1.9.41",
+    "@sudobility/types": "^1.9.42",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^9.38.0",
