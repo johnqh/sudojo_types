@@ -516,3 +516,115 @@ export interface TechniqueExampleUpdateRequest {
   hint_data: Optional<string>;
   source_board_uuid: Optional<string | null>;
 }
+
+// =============================================================================
+// Belt System (Karate belt progression for levels 1-9)
+// =============================================================================
+
+/** Belt information for a level */
+export interface Belt {
+  /** Belt name (e.g., "White", "Yellow") */
+  name: string;
+  /** Hex color code */
+  hex: string;
+}
+
+/** Belt colors mapped to level index (1-9) */
+export const BELT_COLORS: Record<number, Belt> = {
+  1: { name: 'White', hex: '#FFFFFF' },
+  2: { name: 'Yellow', hex: '#FFEB3B' },
+  3: { name: 'Orange', hex: '#FF9800' },
+  4: { name: 'Green', hex: '#4CAF50' },
+  5: { name: 'Blue', hex: '#2196F3' },
+  6: { name: 'Purple', hex: '#9C27B0' },
+  7: { name: 'Brown', hex: '#795548' },
+  8: { name: 'Red', hex: '#F44336' },
+  9: { name: 'Black', hex: '#212121' },
+};
+
+/** Get the belt for a given level index (1-9) */
+export function getBeltForLevel(levelIndex: number): Belt | null {
+  return BELT_COLORS[levelIndex] ?? null;
+}
+
+/** Get all belts as an array ordered by level */
+export function getAllBelts(): Belt[] {
+  return Object.values(BELT_COLORS);
+}
+
+/**
+ * SVG paths for the martial arts belt icon.
+ * Based on Wikimedia Commons Judo belt design.
+ * ViewBox: 0 0 478.619 184.676
+ */
+export const BELT_ICON_PATHS = [
+  'M192.044,46.054c0,0-1.475,4.952,0.21,7.375c1.686,2.423,24.86,1.791,24.86,1.791L205.845,45L192.044,46.054z',
+  'M9.831,23.198c0,0,119.181,32.087,233.779,32.087c114.598,0,214.679-51.187,218.5-53.479c3.819-2.292,12.987,38.963,0.765,48.131c-12.225,9.168-80.983,48.896-216.208,48.896c-135.226,0-233.015-21.392-239.892-29.032C-0.101,62.161-0.101,31.602,9.831,23.198z',
+  'M252.014,126.336c0,0-22.156-6.112-28.268-21.392c-6.111-15.279,58.827-29.795,58.827-29.795l-6.112,31.324L252.014,126.336z',
+  'M195.479,102.652c0,0,30.56,21.392,35.143,19.1c4.584-2.292,58.827-36.671,58.827-36.671L243.61,51.465l-50.423,38.2L195.479,102.652z',
+  'M22.818,152.312c0,0,125.293-76.398,200.928-106.958c75.635-30.56,30.56,29.031,30.56,29.031s-78.69,38.199-110.778,57.299s-81.746,50.424-87.858,51.188C49.558,183.635,22.818,152.312,22.818,152.312z',
+  'M255.967,27.303c0,0-5.29-1.851-14.146,8.46c-8.857,10.312,15.07,8.197,15.07,8.197L255.967,27.303z',
+  'M232.15,28.546c0,0,94.734,49.659,127.586,60.355c32.851,10.696,113.832,46.603,116.889,55.771s-27.503,30.559-27.503,30.559s-23.685-21.391-54.243-34.379c-30.56-12.987-83.274-34.379-112.306-48.131c-29.031-13.751-89.387-47.367-89.387-47.367L232.15,28.546z',
+  'M255.834,27.782c0,0-2.292,92.442-4.584,97.026c-2.293,4.584,42.783-12.987,43.546-18.335c0.765-5.349,6.877-50.423,2.293-55.007S260.417,25.49,255.834,27.782z',
+];
+
+/** Original viewBox for the belt icon */
+export const BELT_ICON_VIEWBOX = '0 0 478.619 184.676';
+
+/**
+ * Generate a complete SVG string for the martial arts belt icon.
+ * Uses black stroke for all colors except black belt, which uses white stroke.
+ *
+ * @param fill - Fill color for the belt
+ * @param width - Width in pixels (default: 100)
+ * @param height - Height in pixels (default: 40)
+ * @param strokeColor - Stroke color (default: auto-detected based on fill)
+ *
+ * @example
+ * // Get SVG for blue belt:
+ * const svg = getBeltIconSvg('#2196F3');
+ *
+ * // Get SVG for black belt (auto white stroke):
+ * const svg = getBeltIconSvg('#212121');
+ *
+ * // React with dangerouslySetInnerHTML:
+ * <div dangerouslySetInnerHTML={{ __html: getBeltIconSvg(belt.hex) }} />
+ */
+export function getBeltIconSvg(
+  fill: string,
+  width: number = 100,
+  height: number = 40,
+  strokeColor?: string
+): string {
+  // Auto-detect stroke color: use white for dark fills (black belt)
+  const stroke =
+    strokeColor ??
+    (fill.toLowerCase() === '#212121' || fill.toLowerCase() === '#000000'
+      ? '#FFFFFF'
+      : '#000000');
+
+  const paths = BELT_ICON_PATHS.map(
+    (d) => `<path fill="${fill}" stroke="${stroke}" stroke-width="4" d="${d}"/>`
+  ).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BELT_ICON_VIEWBOX}" width="${width}" height="${height}">${paths}</svg>`;
+}
+
+/**
+ * Generate belt icon SVG for a specific level index.
+ * Convenience function that combines getBeltForLevel and getBeltIconSvg.
+ *
+ * @param levelIndex - Level index (1-9)
+ * @param width - Width in pixels (default: 100)
+ * @param height - Height in pixels (default: 40)
+ * @returns SVG string or null if level is invalid
+ */
+export function getBeltIconForLevel(
+  levelIndex: number,
+  width: number = 100,
+  height: number = 40
+): string | null {
+  const belt = getBeltForLevel(levelIndex);
+  if (!belt) return null;
+  return getBeltIconSvg(belt.hex, width, height);
+}

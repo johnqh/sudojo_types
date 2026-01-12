@@ -2,6 +2,14 @@ import { describe, it, expect, expectTypeOf } from 'vitest';
 import {
   successResponse,
   errorResponse,
+  getBeltForLevel,
+  getAllBelts,
+  getBeltIconSvg,
+  getBeltIconForLevel,
+  BELT_COLORS,
+  BELT_ICON_PATHS,
+  BELT_ICON_VIEWBOX,
+  type Belt,
   type Level,
   type Technique,
   type Learning,
@@ -371,5 +379,162 @@ describe('Response Types', () => {
     expectTypeOf(health.name).toBeString();
     expectTypeOf(health.version).toBeString();
     expectTypeOf(health.status).toBeString();
+  });
+});
+
+// =============================================================================
+// Belt System Tests
+// =============================================================================
+
+describe('Belt System', () => {
+  describe('BELT_COLORS', () => {
+    it('should have 9 belt colors for levels 1-9', () => {
+      expect(Object.keys(BELT_COLORS)).toHaveLength(9);
+    });
+
+    it('should have correct belt names in order', () => {
+      expect(BELT_COLORS[1].name).toBe('White');
+      expect(BELT_COLORS[2].name).toBe('Yellow');
+      expect(BELT_COLORS[3].name).toBe('Orange');
+      expect(BELT_COLORS[4].name).toBe('Green');
+      expect(BELT_COLORS[5].name).toBe('Blue');
+      expect(BELT_COLORS[6].name).toBe('Purple');
+      expect(BELT_COLORS[7].name).toBe('Brown');
+      expect(BELT_COLORS[8].name).toBe('Red');
+      expect(BELT_COLORS[9].name).toBe('Black');
+    });
+
+    it('should have valid hex color codes', () => {
+      const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+      Object.values(BELT_COLORS).forEach((belt) => {
+        expect(belt.hex).toMatch(hexColorRegex);
+      });
+    });
+  });
+
+  describe('getBeltForLevel', () => {
+    it('should return correct belt for valid levels 1-9', () => {
+      expect(getBeltForLevel(1)).toEqual({ name: 'White', hex: '#FFFFFF' });
+      expect(getBeltForLevel(5)).toEqual({ name: 'Blue', hex: '#2196F3' });
+      expect(getBeltForLevel(9)).toEqual({ name: 'Black', hex: '#212121' });
+    });
+
+    it('should return null for invalid level indices', () => {
+      expect(getBeltForLevel(0)).toBeNull();
+      expect(getBeltForLevel(10)).toBeNull();
+      expect(getBeltForLevel(-1)).toBeNull();
+    });
+  });
+
+  describe('getAllBelts', () => {
+    it('should return all 9 belts as an array', () => {
+      const belts = getAllBelts();
+      expect(belts).toHaveLength(9);
+    });
+
+    it('should return belts in order from White to Black', () => {
+      const belts = getAllBelts();
+      expect(belts[0].name).toBe('White');
+      expect(belts[8].name).toBe('Black');
+    });
+  });
+
+  describe('Belt type', () => {
+    it('should have correct shape', () => {
+      const belt: Belt = { name: 'White', hex: '#FFFFFF' };
+
+      expectTypeOf(belt.name).toBeString();
+      expectTypeOf(belt.hex).toBeString();
+    });
+  });
+
+  describe('BELT_ICON_PATHS', () => {
+    it('should be an array of SVG path strings', () => {
+      expect(Array.isArray(BELT_ICON_PATHS)).toBe(true);
+      expect(BELT_ICON_PATHS.length).toBe(8);
+      BELT_ICON_PATHS.forEach((path) => {
+        expect(typeof path).toBe('string');
+        expect(path).toContain('M');
+      });
+    });
+  });
+
+  describe('BELT_ICON_VIEWBOX', () => {
+    it('should be the correct viewBox string', () => {
+      expect(BELT_ICON_VIEWBOX).toBe('0 0 478.619 184.676');
+    });
+  });
+
+  describe('getBeltIconSvg', () => {
+    it('should return valid SVG string with fill color', () => {
+      const svg = getBeltIconSvg('#FF0000');
+
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+      expect(svg).toContain('fill="#FF0000"');
+      expect(svg).toContain('viewBox="0 0 478.619 184.676"');
+    });
+
+    it('should use default size of 100x40', () => {
+      const svg = getBeltIconSvg('#2196F3');
+
+      expect(svg).toContain('width="100"');
+      expect(svg).toContain('height="40"');
+    });
+
+    it('should allow custom dimensions', () => {
+      const svg = getBeltIconSvg('#2196F3', 200, 80);
+
+      expect(svg).toContain('width="200"');
+      expect(svg).toContain('height="80"');
+    });
+
+    it('should use black stroke for non-black belts', () => {
+      const svg = getBeltIconSvg('#2196F3');
+
+      expect(svg).toContain('stroke="#000000"');
+    });
+
+    it('should auto-detect white stroke for black belt', () => {
+      const svg = getBeltIconSvg('#212121');
+
+      expect(svg).toContain('stroke="#FFFFFF"');
+    });
+
+    it('should allow custom stroke color override', () => {
+      const svg = getBeltIconSvg('#2196F3', 100, 40, '#FF0000');
+
+      expect(svg).toContain('stroke="#FF0000"');
+    });
+  });
+
+  describe('getBeltIconForLevel', () => {
+    it('should return SVG for valid level', () => {
+      const svg = getBeltIconForLevel(5);
+
+      expect(svg).not.toBeNull();
+      expect(svg).toContain('fill="#2196F3"'); // Blue belt
+      expect(svg).toContain('stroke="#000000"');
+    });
+
+    it('should return SVG with white stroke for black belt (level 9)', () => {
+      const svg = getBeltIconForLevel(9);
+
+      expect(svg).not.toBeNull();
+      expect(svg).toContain('fill="#212121"');
+      expect(svg).toContain('stroke="#FFFFFF"');
+    });
+
+    it('should return null for invalid level', () => {
+      expect(getBeltIconForLevel(0)).toBeNull();
+      expect(getBeltIconForLevel(10)).toBeNull();
+    });
+
+    it('should allow custom dimensions', () => {
+      const svg = getBeltIconForLevel(1, 50, 20);
+
+      expect(svg).toContain('width="50"');
+      expect(svg).toContain('height="20"');
+    });
   });
 });
