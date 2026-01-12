@@ -55,7 +55,6 @@ temp/
 .pnp.*
 yarn.lock
 pnpm-lock.yaml
-bun.lock
 
 # Cache
 .cache/
