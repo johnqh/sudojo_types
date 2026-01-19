@@ -380,20 +380,16 @@ export interface SolveData {
 
 /** Response data for /solver/validate endpoint */
 export interface ValidateData {
-  /** Board with solution */
-  board: SolverBoard;
+  /** Board with solution (includes level/techniques metadata) */
+  board: SolverBoardData;
   /** Always null for validate */
   hints: null;
 }
 
 /** Response data for /solver/generate endpoint */
 export interface GenerateData {
-  /** Generated puzzle with solution */
-  board: SolverBoard;
-  /** Difficulty level (1-12) */
-  level: number;
-  /** Count of techniques required to solve */
-  techniques: number;
+  /** Generated puzzle with solution (includes level/techniques metadata) */
+  board: SolverBoardData;
   /** Always null for generate */
   hints: null;
 }
