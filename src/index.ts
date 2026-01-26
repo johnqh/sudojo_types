@@ -378,6 +378,44 @@ export interface SolveData {
   hints: SolverHints;
 }
 
+// =============================================================================
+// Hint Access Control
+// =============================================================================
+
+/** User state for hint access control */
+export type HintAccessUserState = 'anonymous' | 'no_subscription' | 'insufficient_tier';
+
+/** Entitlement identifiers for hint access */
+export type HintEntitlement = 'blue_belt' | 'red_belt';
+
+/** Error details when hint access is denied (402 response) */
+export interface HintAccessDeniedError {
+  /** Error code for programmatic handling */
+  code: 'HINT_ACCESS_DENIED';
+  /** Human-readable error message */
+  message: string;
+  /** The difficulty level of the requested hint */
+  hintLevel: number;
+  /** The entitlement required to access this hint level */
+  requiredEntitlement: HintEntitlement;
+  /** The user's current state */
+  userState: HintAccessUserState;
+}
+
+/** 402 response structure for hint access denied */
+export interface HintAccessDeniedResponse {
+  success: false;
+  error: HintAccessDeniedError;
+  timestamp: string;
+}
+
+/** Hint level limits by entitlement */
+export const HINT_LEVEL_LIMITS = {
+  red_belt: Infinity,
+  blue_belt: 5,
+  free: 3,
+} as const;
+
 /** Response data for /solver/validate endpoint */
 export interface ValidateData {
   /** Board with solution (includes level/techniques metadata) */
