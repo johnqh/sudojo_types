@@ -552,6 +552,43 @@ export interface TechniqueExampleUpdateRequest {
 }
 
 // =============================================================================
+// Technique Practices (for practice mode)
+// =============================================================================
+
+export interface TechniquePractice {
+  uuid: string;
+  /** Reference to the technique this practice is for */
+  technique_uuid: string | null;
+  /** Board state (merged - looks like fresh puzzle) */
+  board: string;
+  /** Pencilmarks at this state (comma-delimited) */
+  pencilmarks: string | null;
+  /** Solution for reference */
+  solution: string;
+  /** Hint data as JSON string */
+  hint_data: string | null;
+  /** Source example UUID for reference */
+  source_example_uuid: string | null;
+  created_at: Date | null;
+}
+
+export interface TechniquePracticeCreateRequest {
+  technique_uuid: string;
+  board: string;
+  pencilmarks: Optional<string>;
+  solution: string;
+  hint_data: Optional<string>;
+  source_example_uuid: Optional<string | null>;
+}
+
+/** Practice count item for list endpoint */
+export interface TechniquePracticeCountItem {
+  technique_uuid: string;
+  technique_title: string;
+  count: number;
+}
+
+// =============================================================================
 // Belt System (Karate belt progression for levels 1-9)
 // =============================================================================
 
