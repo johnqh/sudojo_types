@@ -9,6 +9,18 @@ import {
   BELT_COLORS,
   BELT_ICON_PATHS,
   BELT_ICON_VIEWBOX,
+  // Board utilities
+  BOARD_SIZE,
+  BLOCK_SIZE,
+  TOTAL_CELLS,
+  parseBoardString,
+  stringifyBoard,
+  // Scramble utilities
+  scrambleBoard,
+  noScramble,
+  DEFAULT_SCRAMBLE_CONFIG,
+  type ScrambleConfig,
+  type ScrambleResult,
   type Belt,
   type Level,
   type Technique,
@@ -535,6 +547,275 @@ describe('Belt System', () => {
 
       expect(svg).toContain('width="50"');
       expect(svg).toContain('height="20"');
+    });
+  });
+});
+
+// =============================================================================
+// Board Utilities Tests
+// =============================================================================
+
+describe('Board Utilities', () => {
+  const validPuzzle =
+    '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+  const validSolution =
+    '534678912672195348198342567859761423426853791713924856961537284287419635345286179';
+
+  describe('constants', () => {
+    it('should have correct BOARD_SIZE', () => {
+      expect(BOARD_SIZE).toBe(9);
+    });
+
+    it('should have correct BLOCK_SIZE', () => {
+      expect(BLOCK_SIZE).toBe(3);
+    });
+
+    it('should have correct TOTAL_CELLS', () => {
+      expect(TOTAL_CELLS).toBe(81);
+    });
+  });
+
+  describe('parseBoardString', () => {
+    it('should parse valid 81-character string', () => {
+      const board = parseBoardString(validPuzzle);
+
+      expect(board).toHaveLength(9);
+      board.forEach((row) => {
+        expect(row).toHaveLength(9);
+      });
+    });
+
+    it('should correctly parse digit values', () => {
+      const board = parseBoardString(validPuzzle);
+
+      expect(board[0][0]).toBe(5);
+      expect(board[0][1]).toBe(3);
+      expect(board[0][2]).toBe(0);
+    });
+
+    it('should throw error for invalid length', () => {
+      expect(() => parseBoardString('12345')).toThrow(
+        'Invalid board string length'
+      );
+    });
+
+    it('should throw error for invalid characters', () => {
+      const invalidBoard = 'x'.repeat(81);
+      expect(() => parseBoardString(invalidBoard)).toThrow(
+        'Invalid character at position'
+      );
+    });
+
+    it('should handle dots as empty cells', () => {
+      const boardWithDots = '.'.repeat(81);
+      const board = parseBoardString(boardWithDots);
+
+      expect(board[0][0]).toBe(0);
+    });
+  });
+
+  describe('stringifyBoard', () => {
+    it('should convert 2D array back to string', () => {
+      const board = parseBoardString(validPuzzle);
+      const result = stringifyBoard(board);
+
+      expect(result).toBe(validPuzzle);
+    });
+
+    it('should throw error for invalid board size', () => {
+      const invalidBoard = [[1, 2, 3]];
+      expect(() => stringifyBoard(invalidBoard)).toThrow('Invalid board rows');
+    });
+  });
+});
+
+// =============================================================================
+// Scramble Utilities Tests
+// =============================================================================
+
+describe('Scramble Utilities', () => {
+  const validPuzzle =
+    '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+  const validSolution =
+    '534678912672195348198342567859761423426853791713924856961537284287419635345286179';
+
+  describe('DEFAULT_SCRAMBLE_CONFIG', () => {
+    it('should have all options enabled by default', () => {
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleRows).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleColumns).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleRowBlocks).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleColumnBlocks).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleDigits).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.rotate).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.mirror).toBe(true);
+    });
+  });
+
+  describe('scrambleBoard', () => {
+    it('should return scrambled puzzle and solution', () => {
+      const result = scrambleBoard(validPuzzle, validSolution);
+
+      expect(result.puzzle).toHaveLength(81);
+      expect(result.solution).toHaveLength(81);
+    });
+
+    it('should return valid digit mapping', () => {
+      const result = scrambleBoard(validPuzzle, validSolution);
+
+      expect(result.digitMapping.size).toBe(9);
+      expect(result.reverseDigitMapping.size).toBe(9);
+
+      // All digits 1-9 should be mapped
+      for (let i = 1; i <= 9; i++) {
+        expect(result.digitMapping.has(i)).toBe(true);
+      }
+    });
+
+    it('should preserve the number of clues', () => {
+      const result = scrambleBoard(validPuzzle, validSolution);
+
+      const originalClues = validPuzzle
+        .split('')
+        .filter((c) => c !== '0').length;
+      const scrambledClues = result.puzzle
+        .split('')
+        .filter((c) => c !== '0').length;
+
+      expect(scrambledClues).toBe(originalClues);
+    });
+
+    it('should maintain puzzle/solution correspondence', () => {
+      const result = scrambleBoard(validPuzzle, validSolution);
+
+      // Each non-zero cell in puzzle should match solution
+      for (let i = 0; i < 81; i++) {
+        const puzzleVal = result.puzzle[i];
+        const solutionVal = result.solution[i];
+        if (puzzleVal !== '0') {
+          expect(puzzleVal).toBe(solutionVal);
+        }
+      }
+    });
+
+    it('should produce valid Sudoku solution', () => {
+      const result = scrambleBoard(validPuzzle, validSolution);
+      const board = parseBoardString(result.solution);
+
+      // Check all rows contain 1-9
+      for (let row = 0; row < 9; row++) {
+        const rowSet = new Set(board[row]);
+        expect(rowSet.size).toBe(9);
+        for (let d = 1; d <= 9; d++) {
+          expect(rowSet.has(d)).toBe(true);
+        }
+      }
+
+      // Check all columns contain 1-9
+      for (let col = 0; col < 9; col++) {
+        const colSet = new Set<number>();
+        for (let row = 0; row < 9; row++) {
+          colSet.add(board[row][col]);
+        }
+        expect(colSet.size).toBe(9);
+      }
+
+      // Check all blocks contain 1-9
+      for (let blockRow = 0; blockRow < 3; blockRow++) {
+        for (let blockCol = 0; blockCol < 3; blockCol++) {
+          const blockSet = new Set<number>();
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              blockSet.add(board[blockRow * 3 + r][blockCol * 3 + c]);
+            }
+          }
+          expect(blockSet.size).toBe(9);
+        }
+      }
+    });
+
+    it('should respect disabled scramble options', () => {
+      const config: ScrambleConfig = {
+        scrambleRows: false,
+        scrambleColumns: false,
+        scrambleRowBlocks: false,
+        scrambleColumnBlocks: false,
+        scrambleDigits: false,
+        rotate: false,
+        mirror: false,
+      };
+
+      const result = scrambleBoard(validPuzzle, validSolution, config);
+
+      // With all scrambling disabled, output should match input
+      expect(result.puzzle).toBe(validPuzzle);
+      expect(result.solution).toBe(validSolution);
+    });
+
+    it('should produce different output with scrambling enabled', () => {
+      // Run multiple times to statistically verify randomness
+      let differentCount = 0;
+      for (let i = 0; i < 10; i++) {
+        const result = scrambleBoard(validPuzzle, validSolution);
+        if (result.puzzle !== validPuzzle) {
+          differentCount++;
+        }
+      }
+      // Should be different at least once (very high probability)
+      expect(differentCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe('noScramble', () => {
+    it('should return unchanged puzzle and solution', () => {
+      const result = noScramble(validPuzzle, validSolution);
+
+      expect(result.puzzle).toBe(validPuzzle);
+      expect(result.solution).toBe(validSolution);
+    });
+
+    it('should return identity digit mapping', () => {
+      const result = noScramble(validPuzzle, validSolution);
+
+      for (let i = 1; i <= 9; i++) {
+        expect(result.digitMapping.get(i)).toBe(i);
+        expect(result.reverseDigitMapping.get(i)).toBe(i);
+      }
+    });
+  });
+
+  describe('ScrambleConfig type', () => {
+    it('should have correct shape', () => {
+      const config: ScrambleConfig = {
+        scrambleRows: true,
+        scrambleColumns: false,
+        scrambleRowBlocks: true,
+        scrambleColumnBlocks: false,
+        scrambleDigits: true,
+        rotate: false,
+        mirror: true,
+      };
+
+      expectTypeOf(config.scrambleRows).toBeBoolean();
+      expectTypeOf(config.scrambleDigits).toBeBoolean();
+      expectTypeOf(config.rotate).toBeBoolean();
+    });
+  });
+
+  describe('ScrambleResult type', () => {
+    it('should have correct shape', () => {
+      const result: ScrambleResult = {
+        puzzle: validPuzzle,
+        solution: validSolution,
+        digitMapping: new Map([[1, 2]]),
+        reverseDigitMapping: new Map([[2, 1]]),
+      };
+
+      expectTypeOf(result.puzzle).toBeString();
+      expectTypeOf(result.solution).toBeString();
+      expectTypeOf(result.digitMapping).toEqualTypeOf<Map<number, number>>();
+      expectTypeOf(result.reverseDigitMapping).toEqualTypeOf<
+        Map<number, number>
+      >();
     });
   });
 });

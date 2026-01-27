@@ -662,3 +662,413 @@ export function getBeltIconForLevel(
   if (!belt) return null;
   return getBeltIconSvg(belt.hex, width, height);
 }
+
+// =============================================================================
+// Board Utilities (for parsing and manipulating Sudoku boards)
+// =============================================================================
+
+/** Board size constant (9x9 grid) */
+export const BOARD_SIZE = 9;
+
+/** Block size constant (3x3 blocks) */
+export const BLOCK_SIZE = 3;
+
+/** Total cells in a board */
+export const TOTAL_CELLS = BOARD_SIZE * BOARD_SIZE;
+
+/**
+ * Parses an 81-character board string into a 2D array of numbers
+ * @param boardString - 81-character string where '0' or '.' represents empty cells
+ * @returns 9x9 array of numbers (0 = empty, 1-9 = filled)
+ */
+export function parseBoardString(boardString: string): number[][] {
+  if (boardString.length !== TOTAL_CELLS) {
+    throw new Error(
+      `Invalid board string length: expected ${TOTAL_CELLS}, got ${boardString.length}`
+    );
+  }
+
+  const board: number[][] = [];
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    const rowArray: number[] = [];
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const index = row * BOARD_SIZE + col;
+      const char = boardString[index];
+      if (char === undefined) {
+        throw new Error(`Missing character at position ${index}`);
+      }
+      const value = char === '.' ? 0 : parseInt(char, 10);
+      if (isNaN(value) || value < 0 || value > 9) {
+        throw new Error(`Invalid character at position ${index}: '${char}'`);
+      }
+      rowArray.push(value);
+    }
+    board.push(rowArray);
+  }
+  return board;
+}
+
+/**
+ * Converts a 2D number array back to an 81-character string
+ * @param board - 9x9 array of numbers
+ * @returns 81-character string
+ */
+export function stringifyBoard(board: number[][]): string {
+  if (board.length !== BOARD_SIZE) {
+    throw new Error(
+      `Invalid board rows: expected ${BOARD_SIZE}, got ${board.length}`
+    );
+  }
+
+  let result = '';
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    if (board[row]?.length !== BOARD_SIZE) {
+      throw new Error(
+        `Invalid row ${row} length: expected ${BOARD_SIZE}, got ${board[row]?.length}`
+      );
+    }
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const value = board[row]?.[col];
+      if (value === undefined || value < 0 || value > 9) {
+        throw new Error(`Invalid value at (${row}, ${col}): ${value}`);
+      }
+      result += value.toString();
+    }
+  }
+  return result;
+}
+
+// =============================================================================
+// Scramble Utilities (for creating visually different but equivalent puzzles)
+// =============================================================================
+
+/**
+ * Scramble configuration options
+ */
+export interface ScrambleConfig {
+  /** Whether to scramble rows within blocks */
+  scrambleRows: boolean;
+  /** Whether to scramble columns within blocks */
+  scrambleColumns: boolean;
+  /** Whether to scramble row blocks (groups of 3 rows) */
+  scrambleRowBlocks: boolean;
+  /** Whether to scramble column blocks (groups of 3 columns) */
+  scrambleColumnBlocks: boolean;
+  /** Whether to scramble digit mapping (1-9 -> 1-9) */
+  scrambleDigits: boolean;
+  /** Whether to rotate the board (0, 90, 180, 270 degrees) */
+  rotate: boolean;
+  /** Whether to mirror the board */
+  mirror: boolean;
+}
+
+/**
+ * Default scramble configuration (all transformations enabled)
+ */
+export const DEFAULT_SCRAMBLE_CONFIG: ScrambleConfig = {
+  scrambleRows: true,
+  scrambleColumns: true,
+  scrambleRowBlocks: true,
+  scrambleColumnBlocks: true,
+  scrambleDigits: true,
+  rotate: true,
+  mirror: true,
+};
+
+/**
+ * Result of scrambling a board
+ */
+export interface ScrambleResult {
+  /** The scrambled puzzle string */
+  puzzle: string;
+  /** The scrambled solution string */
+  solution: string;
+  /** The digit mapping used (original -> scrambled) */
+  digitMapping: Map<number, number>;
+  /** The reverse digit mapping (scrambled -> original) */
+  reverseDigitMapping: Map<number, number>;
+}
+
+/**
+ * Fisher-Yates shuffle algorithm for arrays
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = array[i];
+    array[i] = array[j] as T;
+    array[j] = temp as T;
+  }
+  return array;
+}
+
+/**
+ * Creates a random digit mapping (1-9 -> 1-9)
+ */
+function createDigitMapping(): Map<number, number> {
+  const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const shuffled = shuffleArray([...digits]);
+
+  const mapping = new Map<number, number>();
+  for (let i = 0; i < digits.length; i++) {
+    mapping.set(digits[i] as number, shuffled[i] as number);
+  }
+  return mapping;
+}
+
+/**
+ * Creates the reverse of a digit mapping
+ */
+function reverseDigitMapping(mapping: Map<number, number>): Map<number, number> {
+  const reverse = new Map<number, number>();
+  for (const [original, scrambled] of mapping) {
+    reverse.set(scrambled, original);
+  }
+  return reverse;
+}
+
+/**
+ * Applies digit mapping to a board
+ */
+function applyDigitMapping(
+  board: number[][],
+  mapping: Map<number, number>
+): number[][] {
+  return board.map((row) =>
+    row.map((value) => {
+      if (value === 0) return 0;
+      return mapping.get(value) ?? value;
+    })
+  );
+}
+
+/**
+ * Rotates the board 90 degrees clockwise
+ */
+function rotateBoard90(board: number[][]): number[][] {
+  const rotated: number[][] = [];
+  for (let col = 0; col < BOARD_SIZE; col++) {
+    const newRow: number[] = [];
+    for (let row = BOARD_SIZE - 1; row >= 0; row--) {
+      newRow.push(board[row]?.[col] ?? 0);
+    }
+    rotated.push(newRow);
+  }
+  return rotated;
+}
+
+/**
+ * Mirrors the board horizontally (left-right)
+ */
+function mirrorHorizontally(board: number[][]): number[][] {
+  return board.map((row) => [...row].reverse());
+}
+
+/**
+ * Mirrors the board vertically (top-bottom)
+ */
+function mirrorVertically(board: number[][]): number[][] {
+  return [...board].reverse().map((row) => [...row]);
+}
+
+/**
+ * Scrambles a Sudoku board while preserving its logical structure.
+ *
+ * Scrambling preserves the logical structure of a Sudoku puzzle while making it
+ * appear different. This is useful for:
+ * - Preventing players from recognizing puzzles they've seen before
+ * - Creating variety from a limited puzzle database
+ * - Making it harder to look up solutions online
+ *
+ * @param puzzle - 81-character puzzle string
+ * @param solution - 81-character solution string
+ * @param config - Scramble configuration (defaults to all transformations enabled)
+ * @returns Scramble result with scrambled puzzle, solution, and digit mapping
+ *
+ * @example
+ * ```typescript
+ * const result = scrambleBoard(puzzle, solution);
+ * console.log(result.puzzle);      // Scrambled puzzle
+ * console.log(result.solution);    // Scrambled solution
+ * console.log(result.digitMapping); // Map from original to scrambled digits
+ * ```
+ */
+export function scrambleBoard(
+  puzzle: string,
+  solution: string,
+  config: ScrambleConfig = DEFAULT_SCRAMBLE_CONFIG
+): ScrambleResult {
+  // Parse the boards
+  let puzzleBoard = parseBoardString(puzzle);
+  let solutionBoard = parseBoardString(solution);
+
+  // Create digit mapping (applied to both puzzle and solution)
+  let digitMapping = new Map<number, number>();
+  for (let i = 1; i <= 9; i++) {
+    digitMapping.set(i, i); // Identity mapping by default
+  }
+
+  if (config.scrambleDigits) {
+    digitMapping = createDigitMapping();
+    puzzleBoard = applyDigitMapping(puzzleBoard, digitMapping);
+    solutionBoard = applyDigitMapping(solutionBoard, digitMapping);
+  }
+
+  // Scramble rows within blocks
+  if (config.scrambleRows) {
+    const rowPermutations: number[][] = [];
+    for (let blockRow = 0; blockRow < BLOCK_SIZE; blockRow++) {
+      rowPermutations.push(shuffleArray([0, 1, 2]));
+    }
+
+    const applyRowPermutation = (board: number[][]): void => {
+      for (let blockRow = 0; blockRow < BLOCK_SIZE; blockRow++) {
+        const startRow = blockRow * BLOCK_SIZE;
+        const perm = rowPermutations[blockRow] as number[];
+        const rowsCopy = [
+          [...(board[startRow] ?? [])],
+          [...(board[startRow + 1] ?? [])],
+          [...(board[startRow + 2] ?? [])],
+        ];
+        for (let i = 0; i < BLOCK_SIZE; i++) {
+          board[startRow + i] = rowsCopy[perm[i] as number] as number[];
+        }
+      }
+    };
+
+    applyRowPermutation(puzzleBoard);
+    applyRowPermutation(solutionBoard);
+  }
+
+  // Scramble columns within blocks
+  if (config.scrambleColumns) {
+    const colPermutations: number[][] = [];
+    for (let blockCol = 0; blockCol < BLOCK_SIZE; blockCol++) {
+      colPermutations.push(shuffleArray([0, 1, 2]));
+    }
+
+    const applyColPermutation = (board: number[][]): void => {
+      for (let blockCol = 0; blockCol < BLOCK_SIZE; blockCol++) {
+        const startCol = blockCol * BLOCK_SIZE;
+        const perm = colPermutations[blockCol] as number[];
+        for (let row = 0; row < BOARD_SIZE; row++) {
+          const boardRow = board[row];
+          if (boardRow) {
+            const colsCopy = [
+              boardRow[startCol],
+              boardRow[startCol + 1],
+              boardRow[startCol + 2],
+            ];
+            for (let i = 0; i < BLOCK_SIZE; i++) {
+              boardRow[startCol + i] = colsCopy[perm[i] as number] as number;
+            }
+          }
+        }
+      }
+    };
+
+    applyColPermutation(puzzleBoard);
+    applyColPermutation(solutionBoard);
+  }
+
+  // Scramble row blocks
+  if (config.scrambleRowBlocks) {
+    const blockOrder = shuffleArray([0, 1, 2]);
+
+    const applyRowBlockPermutation = (board: number[][]): number[][] => {
+      const allRows = board.map((row) => [...row]);
+      const result: number[][] = [];
+      for (let newBlockIndex = 0; newBlockIndex < BLOCK_SIZE; newBlockIndex++) {
+        const oldBlockIndex = blockOrder[newBlockIndex] as number;
+        for (let i = 0; i < BLOCK_SIZE; i++) {
+          result.push(allRows[oldBlockIndex * BLOCK_SIZE + i] as number[]);
+        }
+      }
+      return result;
+    };
+
+    puzzleBoard = applyRowBlockPermutation(puzzleBoard);
+    solutionBoard = applyRowBlockPermutation(solutionBoard);
+  }
+
+  // Scramble column blocks
+  if (config.scrambleColumnBlocks) {
+    const blockOrder = shuffleArray([0, 1, 2]);
+
+    const applyColBlockPermutation = (board: number[][]): number[][] => {
+      const result: number[][] = board.map(() => new Array(BOARD_SIZE).fill(0));
+      for (let newBlockIndex = 0; newBlockIndex < BLOCK_SIZE; newBlockIndex++) {
+        const oldBlockIndex = blockOrder[newBlockIndex] as number;
+        for (let i = 0; i < BLOCK_SIZE; i++) {
+          const oldCol = oldBlockIndex * BLOCK_SIZE + i;
+          const newCol = newBlockIndex * BLOCK_SIZE + i;
+          for (let row = 0; row < BOARD_SIZE; row++) {
+            const resultRow = result[row];
+            if (resultRow) {
+              resultRow[newCol] = board[row]?.[oldCol] ?? 0;
+            }
+          }
+        }
+      }
+      return result;
+    };
+
+    puzzleBoard = applyColBlockPermutation(puzzleBoard);
+    solutionBoard = applyColBlockPermutation(solutionBoard);
+  }
+
+  // Rotate
+  if (config.rotate) {
+    const rotations = Math.floor(Math.random() * 4);
+    for (let i = 0; i < rotations; i++) {
+      puzzleBoard = rotateBoard90(puzzleBoard);
+      solutionBoard = rotateBoard90(solutionBoard);
+    }
+  }
+
+  // Mirror
+  if (config.mirror) {
+    const mirrorType = Math.floor(Math.random() * 4);
+    const applyMirror = (board: number[][]): number[][] => {
+      switch (mirrorType) {
+        case 1:
+          return mirrorHorizontally(board);
+        case 2:
+          return mirrorVertically(board);
+        case 3:
+          return mirrorVertically(mirrorHorizontally(board));
+        default:
+          return board;
+      }
+    };
+    puzzleBoard = applyMirror(puzzleBoard);
+    solutionBoard = applyMirror(solutionBoard);
+  }
+
+  return {
+    puzzle: stringifyBoard(puzzleBoard),
+    solution: stringifyBoard(solutionBoard),
+    digitMapping,
+    reverseDigitMapping: reverseDigitMapping(digitMapping),
+  };
+}
+
+/**
+ * Creates an identity scramble result (no scrambling)
+ * @param puzzle - 81-character puzzle string
+ * @param solution - 81-character solution string
+ * @returns ScrambleResult with identity mapping
+ */
+export function noScramble(puzzle: string, solution: string): ScrambleResult {
+  const identityMapping = new Map<number, number>();
+  for (let i = 1; i <= 9; i++) {
+    identityMapping.set(i, i);
+  }
+
+  return {
+    puzzle,
+    solution,
+    digitMapping: identityMapping,
+    reverseDigitMapping: identityMapping,
+  };
+}
