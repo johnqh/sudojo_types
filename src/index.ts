@@ -260,24 +260,29 @@ export interface SubscriptionResult {
 // Solver Types (Sudoku solving/validation/generation)
 // =============================================================================
 
-/** Pencilmark data for a Sudoku board */
-export interface SolverPencilmarks {
-  /** Whether pencilmarks were auto-generated */
-  auto: boolean;
-  /** Comma-delimited string of 81 pencilmark entries (e.g., "124,45,...") */
-  pencilmarks: string;
+/**
+ * Pencilmark data for a Sudoku board.
+ * Contains the autopencil setting and pencilmark values for all cells.
+ */
+export interface SolverPencilmark {
+  /** Whether autopencilmark mode is enabled */
+  autopencil: boolean;
+  /** Comma-delimited string of 81 pencilmark entries (e.g., "123,45,9,...") */
+  numbers: string;
 }
 
-/** Board state in solver responses */
+/**
+ * Board state in solver responses.
+ * Contains the game state after a hint is applied (for solve endpoint)
+ * or the validated/generated puzzle state (for validate/generate endpoints).
+ */
 export interface SolverBoard {
   /** Original puzzle (81-char string, 0 = empty) */
   original: string;
-  /** User's current input (81-char string, 0 = empty) */
-  user: string | null;
-  /** Puzzle solution (81-char string) */
-  solution: string | null;
-  /** Pencilmark data */
-  pencilmarks: SolverPencilmarks | null;
+  /** User's current input after hint applied (81-char string, 0 = empty) */
+  user: string;
+  /** Pencilmark data including autopencil setting */
+  pencilmark: SolverPencilmark;
 }
 
 /** Area highlight type */
@@ -381,31 +386,34 @@ export interface SolverHintStep {
   digit?: number;
 }
 
-/** Hints data from solver */
+/**
+ * Hints data from solver.
+ * Contains the technique used for this hint and multi-step explanations.
+ */
 export interface SolverHints {
-  /** Difficulty level */
+  /**
+   * The technique enum value used for this hint.
+   * Matches C++ SudokuTechnique enum (e.g., 1=NAKED_SINGLE, 2=HIDDEN_SINGLE).
+   * Set to 0 if no technique is involved (e.g., "turn on autopencil" hint).
+   */
+  technique: number;
+  /**
+   * Difficulty level for the technique.
+   * Set to 0 if no technique is involved.
+   */
   level: number;
-  /** Count of techniques */
-  techniques: number;
-  /** Hint steps (up to 3) */
+  /** Hint steps with explanations and visualizations */
   steps: SolverHintStep[];
 }
 
-/** Board data wrapper from solver response */
-export interface SolverBoardData {
-  /** Difficulty level */
-  level: number;
-  /** Count of techniques */
-  techniques: number;
-  /** Board state */
-  board: SolverBoard;
-}
-
-/** Response data for /solver/solve endpoint */
+/**
+ * Response data for /solver/solve endpoint.
+ * Contains the board state after the hint is applied and hint information.
+ */
 export interface SolveData {
-  /** Current board state */
-  board: SolverBoardData;
-  /** Hints with steps */
+  /** Board state after hint is applied */
+  board: SolverBoard;
+  /** Hint information including technique, level, and steps */
   hints: SolverHints;
 }
 
@@ -447,20 +455,31 @@ export const HINT_LEVEL_LIMITS = {
   free: 3,
 } as const;
 
+/**
+ * Board data for validate/generate endpoints.
+ * Includes solution and puzzle metadata (level, techniques bitmask).
+ */
+export interface ValidateBoardData {
+  /** Difficulty level of the puzzle */
+  level: number;
+  /** Bitmask of techniques used to solve (for analytics) */
+  techniques: number;
+  /** Original puzzle (81-char string) */
+  original: string;
+  /** Puzzle solution (81-char string) */
+  solution: string;
+}
+
 /** Response data for /solver/validate endpoint */
 export interface ValidateData {
-  /** Board with solution (includes level/techniques metadata) */
-  board: SolverBoardData;
-  /** Always null for validate */
-  hints: null;
+  /** Board with solution and metadata */
+  board: ValidateBoardData;
 }
 
 /** Response data for /solver/generate endpoint */
 export interface GenerateData {
-  /** Generated puzzle with solution (includes level/techniques metadata) */
-  board: SolverBoardData;
-  /** Always null for generate */
-  hints: null;
+  /** Generated puzzle with solution and metadata */
+  board: ValidateBoardData;
 }
 
 // =============================================================================
@@ -713,11 +732,14 @@ export const BELT_ICON_VIEWBOX = '0 0 478.619 184.676';
  * Uses black stroke for all colors except black belt, which uses white stroke.
  * Supports optional stripe color for striped belt variants.
  *
+ * Stripes are placed at the tips/ends of the belt tails (as per real karate belt conventions),
+ * not across the center of the belt.
+ *
  * @param fill - Fill color for the belt
  * @param width - Width in pixels (default: 100)
  * @param height - Height in pixels (default: 40)
  * @param strokeColor - Stroke color (default: auto-detected based on fill)
- * @param stripeColor - Optional stripe color for striped belt variants
+ * @param stripeColor - Optional stripe color for striped belt variants (placed at belt tips)
  *
  * @example
  * // Get SVG for blue belt:
@@ -750,10 +772,14 @@ export function getBeltIconSvg(
     (d) => `<path fill="${fill}" stroke="${stroke}" stroke-width="4" d="${d}"/>`
   ).join('');
 
-  // Add stripe if stripeColor is provided
-  // The stripe is a horizontal band across the center of the belt
-  const stripe = stripeColor
-    ? `<rect x="0" y="75" width="480" height="35" fill="${stripeColor}" stroke="${stroke}" stroke-width="2" clip-path="url(#beltClip)"/>`
+  // Add stripes at the belt tail tips if stripeColor is provided
+  // Real karate belt stripes are placed at the END of the belt (near the tips), not across the center
+  // The belt has two tails: left tail (lower-left) and right tail (upper-right)
+  const stripes = stripeColor
+    ? `
+      <rect x="25" y="158" width="50" height="18" fill="${stripeColor}" stroke="${stroke}" stroke-width="1.5" transform="rotate(-20, 50, 167)" clip-path="url(#beltClip)"/>
+      <rect x="425" y="148" width="50" height="18" fill="${stripeColor}" stroke="${stroke}" stroke-width="1.5" transform="rotate(20, 450, 157)" clip-path="url(#beltClip)"/>
+    `
     : '';
 
   // Create a clip path using the belt paths for proper stripe clipping
@@ -761,7 +787,7 @@ export function getBeltIconSvg(
     ? `<defs><clipPath id="beltClip">${BELT_ICON_PATHS.map((d) => `<path d="${d}"/>`).join('')}</clipPath></defs>`
     : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BELT_ICON_VIEWBOX}" width="${width}" height="${height}">${clipPath}${paths}${stripe}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BELT_ICON_VIEWBOX}" width="${width}" height="${height}">${clipPath}${paths}${stripes}</svg>`;
 }
 
 /**
