@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/sudojo_types",
-  "version": "1.2.11",
+  "version": "1.2.12",
   "description": "TypeScript types for Sudojo API - Sudoku learning platform",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -13,10 +13,10 @@
     }
   },
   "scripts": {
-    "build": "bun run build:esm && bun run build:cjs",
+    "build": "bun run build:cjs && bun run build:esm",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json && bun run build:cjs-rename",
-    "build:cjs-rename": "find dist -name '*.js' -not -name '*.cjs' -exec sh -c 'cp \"$1\" \"${1%.js}.cjs\"' _ {} \\;",
+    "build:cjs-rename": "for f in dist/*.js; do mv \"$f\" \"${f%.js}.cjs\"; done",
     "clean": "rimraf dist",
     "dev": "tsc --watch",
     "test": "vitest run",
