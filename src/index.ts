@@ -20,8 +20,7 @@ import type { Optional } from '@sudobility/types';
 // =============================================================================
 
 export interface Level {
-  uuid: string;
-  index: number;
+  level: number;
   title: string;
   text: string | null;
   requires_subscription: boolean | null;
@@ -30,9 +29,8 @@ export interface Level {
 }
 
 export interface Technique {
-  uuid: string;
-  level_uuid: string | null;
-  index: number;
+  technique: number;
+  level: number | null;
   title: string;
   text: string | null;
   created_at: Date | null;
@@ -41,7 +39,7 @@ export interface Technique {
 
 export interface Learning {
   uuid: string;
-  technique_uuid: string | null;
+  technique: number | null;
   index: number;
   language_code: string;
   text: string | null;
@@ -52,7 +50,7 @@ export interface Learning {
 
 export interface Board {
   uuid: string;
-  level_uuid: string | null;
+  level: number | null;
   symmetrical: boolean | null;
   board: string;
   solution: string;
@@ -65,7 +63,7 @@ export interface Daily {
   uuid: string;
   date: string;
   board_uuid: string | null;
-  level_uuid: string | null;
+  level: number | null;
   techniques: number | null;
   board: string;
   solution: string;
@@ -76,7 +74,7 @@ export interface Daily {
 export interface Challenge {
   uuid: string;
   board_uuid: string | null;
-  level_uuid: string | null;
+  level: number | null;
   difficulty: number | null;
   board: string;
   solution: string;
@@ -90,14 +88,13 @@ export interface Challenge {
 
 // Level requests
 export interface LevelCreateRequest {
-  index: number;
+  level: number;
   title: string;
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
 }
 
 export interface LevelUpdateRequest {
-  index: Optional<number>;
   title: Optional<string>;
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
@@ -105,22 +102,21 @@ export interface LevelUpdateRequest {
 
 // Technique requests
 export interface TechniqueCreateRequest {
-  level_uuid: string;
-  index: number;
+  technique: number;
+  level: number;
   title: string;
   text: Optional<string>;
 }
 
 export interface TechniqueUpdateRequest {
-  level_uuid: Optional<string>;
-  index: Optional<number>;
+  level: Optional<number>;
   title: Optional<string>;
   text: Optional<string>;
 }
 
 // Learning requests
 export interface LearningCreateRequest {
-  technique_uuid: string;
+  technique: number;
   index: number;
   language_code: Optional<string>;
   text: Optional<string>;
@@ -128,7 +124,7 @@ export interface LearningCreateRequest {
 }
 
 export interface LearningUpdateRequest {
-  technique_uuid: Optional<string>;
+  technique: Optional<number>;
   index: Optional<number>;
   language_code: Optional<string>;
   text: Optional<string>;
@@ -137,7 +133,7 @@ export interface LearningUpdateRequest {
 
 // Board requests
 export interface BoardCreateRequest {
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   symmetrical: Optional<boolean>;
   board: string;
   solution: string;
@@ -145,7 +141,7 @@ export interface BoardCreateRequest {
 }
 
 export interface BoardUpdateRequest {
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   symmetrical: Optional<boolean>;
   board: Optional<string>;
   solution: Optional<string>;
@@ -156,7 +152,7 @@ export interface BoardUpdateRequest {
 export interface DailyCreateRequest {
   date: string;
   board_uuid: Optional<string | null>;
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   techniques: Optional<number>;
   board: string;
   solution: string;
@@ -165,7 +161,7 @@ export interface DailyCreateRequest {
 export interface DailyUpdateRequest {
   date: Optional<string>;
   board_uuid: Optional<string | null>;
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   techniques: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
@@ -174,7 +170,7 @@ export interface DailyUpdateRequest {
 // Challenge requests
 export interface ChallengeCreateRequest {
   board_uuid: Optional<string | null>;
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   difficulty: Optional<number>;
   board: string;
   solution: string;
@@ -182,7 +178,7 @@ export interface ChallengeCreateRequest {
 
 export interface ChallengeUpdateRequest {
   board_uuid: Optional<string | null>;
-  level_uuid: Optional<string | null>;
+  level: Optional<number | null>;
   difficulty: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
@@ -193,20 +189,20 @@ export interface ChallengeUpdateRequest {
 // =============================================================================
 
 export interface TechniqueQueryParams {
-  level_uuid: Optional<string>;
+  level: Optional<number>;
 }
 
 export interface LearningQueryParams {
-  technique_uuid: Optional<string>;
+  technique: Optional<number>;
   language_code: Optional<string>;
 }
 
 export interface BoardQueryParams {
-  level_uuid: Optional<string>;
+  level: Optional<number>;
 }
 
 export interface ChallengeQueryParams {
-  level_uuid: Optional<string>;
+  level: Optional<number>;
   difficulty: Optional<string>;
 }
 
@@ -623,7 +619,7 @@ export interface TechniqueExampleUpdateRequest {
 export interface TechniquePractice {
   uuid: string;
   /** Reference to the technique this practice is for */
-  technique_uuid: string | null;
+  technique: number | null;
   /** Board state (merged - looks like fresh puzzle) */
   board: string;
   /** Pencilmarks at this state (comma-delimited) */
@@ -638,7 +634,7 @@ export interface TechniquePractice {
 }
 
 export interface TechniquePracticeCreateRequest {
-  technique_uuid: string;
+  technique: number;
   board: string;
   pencilmarks: Optional<string>;
   solution: string;
@@ -648,7 +644,7 @@ export interface TechniquePracticeCreateRequest {
 
 /** Practice count item for list endpoint */
 export interface TechniquePracticeCountItem {
-  technique_uuid: string;
+  technique: number;
   technique_title: string;
   count: number;
 }
