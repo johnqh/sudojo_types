@@ -650,31 +650,36 @@ export interface TechniquePracticeCountItem {
 }
 
 // =============================================================================
-// Belt System (Karate belt progression for levels 1-9)
+// Belt System (Karate belt progression for levels 1-12)
 // =============================================================================
 
 /** Belt information for a level */
 export interface Belt {
   /** Belt name (e.g., "White", "Yellow") */
   name: string;
-  /** Hex color code */
+  /** Hex color code for main belt color */
   hex: string;
+  /** Optional stripe color hex code */
+  stripeHex?: string;
 }
 
-/** Belt colors mapped to level index (1-9) */
+/** Belt colors mapped to level index (1-12) */
 export const BELT_COLORS: Record<number, Belt> = {
   1: { name: 'White', hex: '#FFFFFF' },
-  2: { name: 'Yellow', hex: '#FFEB3B' },
-  3: { name: 'Orange', hex: '#FF9800' },
-  4: { name: 'Green', hex: '#4CAF50' },
-  5: { name: 'Blue', hex: '#2196F3' },
-  6: { name: 'Purple', hex: '#9C27B0' },
-  7: { name: 'Brown', hex: '#795548' },
-  8: { name: 'Red', hex: '#F44336' },
-  9: { name: 'Black', hex: '#212121' },
+  2: { name: 'White (Yellow Stripe)', hex: '#FFFFFF', stripeHex: '#FFEB3B' },
+  3: { name: 'Yellow', hex: '#FFEB3B' },
+  4: { name: 'Yellow (Orange Stripe)', hex: '#FFEB3B', stripeHex: '#FF9800' },
+  5: { name: 'Orange', hex: '#FF9800' },
+  6: { name: 'Orange (Green Stripe)', hex: '#FF9800', stripeHex: '#4CAF50' },
+  7: { name: 'Green', hex: '#4CAF50' },
+  8: { name: 'Blue', hex: '#2196F3' },
+  9: { name: 'Purple', hex: '#9C27B0' },
+  10: { name: 'Brown', hex: '#795548' },
+  11: { name: 'Red', hex: '#F44336' },
+  12: { name: 'Black', hex: '#212121' },
 };
 
-/** Get the belt for a given level index (1-9) */
+/** Get the belt for a given level index (1-12) */
 export function getBeltForLevel(levelIndex: number): Belt | null {
   return BELT_COLORS[levelIndex] ?? null;
 }
@@ -706,11 +711,13 @@ export const BELT_ICON_VIEWBOX = '0 0 478.619 184.676';
 /**
  * Generate a complete SVG string for the martial arts belt icon.
  * Uses black stroke for all colors except black belt, which uses white stroke.
+ * Supports optional stripe color for striped belt variants.
  *
  * @param fill - Fill color for the belt
  * @param width - Width in pixels (default: 100)
  * @param height - Height in pixels (default: 40)
  * @param strokeColor - Stroke color (default: auto-detected based on fill)
+ * @param stripeColor - Optional stripe color for striped belt variants
  *
  * @example
  * // Get SVG for blue belt:
@@ -719,14 +726,18 @@ export const BELT_ICON_VIEWBOX = '0 0 478.619 184.676';
  * // Get SVG for black belt (auto white stroke):
  * const svg = getBeltIconSvg('#212121');
  *
+ * // Get SVG for white belt with yellow stripe:
+ * const svg = getBeltIconSvg('#FFFFFF', 100, 40, undefined, '#FFEB3B');
+ *
  * // React with dangerouslySetInnerHTML:
- * <div dangerouslySetInnerHTML={{ __html: getBeltIconSvg(belt.hex) }} />
+ * <div dangerouslySetInnerHTML={{ __html: getBeltIconSvg(belt.hex, 100, 40, undefined, belt.stripeHex) }} />
  */
 export function getBeltIconSvg(
   fill: string,
   width: number = 100,
   height: number = 40,
-  strokeColor?: string
+  strokeColor?: string,
+  stripeColor?: string
 ): string {
   // Auto-detect stroke color: use white for dark fills (black belt)
   const stroke =
@@ -739,14 +750,26 @@ export function getBeltIconSvg(
     (d) => `<path fill="${fill}" stroke="${stroke}" stroke-width="4" d="${d}"/>`
   ).join('');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BELT_ICON_VIEWBOX}" width="${width}" height="${height}">${paths}</svg>`;
+  // Add stripe if stripeColor is provided
+  // The stripe is a horizontal band across the center of the belt
+  const stripe = stripeColor
+    ? `<rect x="0" y="75" width="480" height="35" fill="${stripeColor}" stroke="${stroke}" stroke-width="2" clip-path="url(#beltClip)"/>`
+    : '';
+
+  // Create a clip path using the belt paths for proper stripe clipping
+  const clipPath = stripeColor
+    ? `<defs><clipPath id="beltClip">${BELT_ICON_PATHS.map((d) => `<path d="${d}"/>`).join('')}</clipPath></defs>`
+    : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BELT_ICON_VIEWBOX}" width="${width}" height="${height}">${clipPath}${paths}${stripe}</svg>`;
 }
 
 /**
  * Generate belt icon SVG for a specific level index.
  * Convenience function that combines getBeltForLevel and getBeltIconSvg.
+ * Automatically includes stripe if the belt has one.
  *
- * @param levelIndex - Level index (1-9)
+ * @param levelIndex - Level index (1-12)
  * @param width - Width in pixels (default: 100)
  * @param height - Height in pixels (default: 40)
  * @returns SVG string or null if level is invalid
@@ -758,7 +781,7 @@ export function getBeltIconForLevel(
 ): string | null {
   const belt = getBeltForLevel(levelIndex);
   if (!belt) return null;
-  return getBeltIconSvg(belt.hex, width, height);
+  return getBeltIconSvg(belt.hex, width, height, undefined, belt.stripeHex);
 }
 
 // =============================================================================

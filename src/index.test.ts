@@ -400,54 +400,74 @@ describe('Response Types', () => {
 
 describe('Belt System', () => {
   describe('BELT_COLORS', () => {
-    it('should have 9 belt colors for levels 1-9', () => {
-      expect(Object.keys(BELT_COLORS)).toHaveLength(9);
+    it('should have 12 belt colors for levels 1-12', () => {
+      expect(Object.keys(BELT_COLORS)).toHaveLength(12);
     });
 
     it('should have correct belt names in order', () => {
       expect(BELT_COLORS[1].name).toBe('White');
-      expect(BELT_COLORS[2].name).toBe('Yellow');
-      expect(BELT_COLORS[3].name).toBe('Orange');
-      expect(BELT_COLORS[4].name).toBe('Green');
-      expect(BELT_COLORS[5].name).toBe('Blue');
-      expect(BELT_COLORS[6].name).toBe('Purple');
-      expect(BELT_COLORS[7].name).toBe('Brown');
-      expect(BELT_COLORS[8].name).toBe('Red');
-      expect(BELT_COLORS[9].name).toBe('Black');
+      expect(BELT_COLORS[2].name).toBe('White (Yellow Stripe)');
+      expect(BELT_COLORS[3].name).toBe('Yellow');
+      expect(BELT_COLORS[4].name).toBe('Yellow (Orange Stripe)');
+      expect(BELT_COLORS[5].name).toBe('Orange');
+      expect(BELT_COLORS[6].name).toBe('Orange (Green Stripe)');
+      expect(BELT_COLORS[7].name).toBe('Green');
+      expect(BELT_COLORS[8].name).toBe('Blue');
+      expect(BELT_COLORS[9].name).toBe('Purple');
+      expect(BELT_COLORS[10].name).toBe('Brown');
+      expect(BELT_COLORS[11].name).toBe('Red');
+      expect(BELT_COLORS[12].name).toBe('Black');
     });
 
     it('should have valid hex color codes', () => {
       const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
       Object.values(BELT_COLORS).forEach((belt) => {
         expect(belt.hex).toMatch(hexColorRegex);
+        if (belt.stripeHex) {
+          expect(belt.stripeHex).toMatch(hexColorRegex);
+        }
       });
+    });
+
+    it('should have stripe colors for striped belts', () => {
+      expect(BELT_COLORS[2].stripeHex).toBe('#FFEB3B'); // Yellow stripe
+      expect(BELT_COLORS[4].stripeHex).toBe('#FF9800'); // Orange stripe
+      expect(BELT_COLORS[6].stripeHex).toBe('#4CAF50'); // Green stripe
     });
   });
 
   describe('getBeltForLevel', () => {
-    it('should return correct belt for valid levels 1-9', () => {
+    it('should return correct belt for valid levels 1-12', () => {
       expect(getBeltForLevel(1)).toEqual({ name: 'White', hex: '#FFFFFF' });
-      expect(getBeltForLevel(5)).toEqual({ name: 'Blue', hex: '#2196F3' });
-      expect(getBeltForLevel(9)).toEqual({ name: 'Black', hex: '#212121' });
+      expect(getBeltForLevel(5)).toEqual({ name: 'Orange', hex: '#FF9800' });
+      expect(getBeltForLevel(12)).toEqual({ name: 'Black', hex: '#212121' });
+    });
+
+    it('should return striped belts with stripeHex', () => {
+      expect(getBeltForLevel(2)).toEqual({
+        name: 'White (Yellow Stripe)',
+        hex: '#FFFFFF',
+        stripeHex: '#FFEB3B',
+      });
     });
 
     it('should return null for invalid level indices', () => {
       expect(getBeltForLevel(0)).toBeNull();
-      expect(getBeltForLevel(10)).toBeNull();
+      expect(getBeltForLevel(13)).toBeNull();
       expect(getBeltForLevel(-1)).toBeNull();
     });
   });
 
   describe('getAllBelts', () => {
-    it('should return all 9 belts as an array', () => {
+    it('should return all 12 belts as an array', () => {
       const belts = getAllBelts();
-      expect(belts).toHaveLength(9);
+      expect(belts).toHaveLength(12);
     });
 
     it('should return belts in order from White to Black', () => {
       const belts = getAllBelts();
       expect(belts[0].name).toBe('White');
-      expect(belts[8].name).toBe('Black');
+      expect(belts[11].name).toBe('Black');
     });
   });
 
@@ -457,6 +477,16 @@ describe('Belt System', () => {
 
       expectTypeOf(belt.name).toBeString();
       expectTypeOf(belt.hex).toBeString();
+    });
+
+    it('should support optional stripeHex', () => {
+      const stripedBelt: Belt = {
+        name: 'White (Yellow Stripe)',
+        hex: '#FFFFFF',
+        stripeHex: '#FFEB3B',
+      };
+
+      expectTypeOf(stripedBelt.stripeHex).toEqualTypeOf<string | undefined>();
     });
   });
 
@@ -525,12 +555,12 @@ describe('Belt System', () => {
       const svg = getBeltIconForLevel(5);
 
       expect(svg).not.toBeNull();
-      expect(svg).toContain('fill="#2196F3"'); // Blue belt
+      expect(svg).toContain('fill="#FF9800"'); // Orange belt
       expect(svg).toContain('stroke="#000000"');
     });
 
-    it('should return SVG with white stroke for black belt (level 9)', () => {
-      const svg = getBeltIconForLevel(9);
+    it('should return SVG with white stroke for black belt (level 12)', () => {
+      const svg = getBeltIconForLevel(12);
 
       expect(svg).not.toBeNull();
       expect(svg).toContain('fill="#212121"');
@@ -539,7 +569,7 @@ describe('Belt System', () => {
 
     it('should return null for invalid level', () => {
       expect(getBeltIconForLevel(0)).toBeNull();
-      expect(getBeltIconForLevel(10)).toBeNull();
+      expect(getBeltIconForLevel(13)).toBeNull();
     });
 
     it('should allow custom dimensions', () => {
@@ -547,6 +577,15 @@ describe('Belt System', () => {
 
       expect(svg).toContain('width="50"');
       expect(svg).toContain('height="20"');
+    });
+
+    it('should include stripe for striped belts', () => {
+      const svg = getBeltIconForLevel(2); // White belt with yellow stripe
+
+      expect(svg).not.toBeNull();
+      expect(svg).toContain('fill="#FFFFFF"'); // White base
+      expect(svg).toContain('#FFEB3B'); // Yellow stripe color
+      expect(svg).toContain('clipPath'); // Stripe uses clip path
     });
   });
 });
