@@ -464,6 +464,21 @@ export enum TechniqueId {
   ALMOST_LOCKED_SETS = 21,
   FINNED_SQUIRMBAG = 22,
   ALS_CHAIN = 23,
+  // New techniques added to solver
+  SKYSCRAPER = 24,
+  TWO_STRING_KITE = 25,
+  EMPTY_RECTANGLE = 26,
+  SIMPLE_COLORING = 27,
+  W_WING = 28,
+  REMOTE_PAIRS = 29,
+  UNIQUE_RECTANGLE_1 = 30,
+  UNIQUE_RECTANGLE_2 = 31,
+  BUG_PLUS_1 = 32,
+  SUE_DE_COQ = 33,
+  ALS_XZ = 34,
+  X_CYCLES = 35,
+  FORCING_CHAINS = 36,
+  MEDUSA_COLORING = 37,
 }
 
 /** Map technique title strings (from solver API hints.steps[].title) to TechniqueId */
@@ -491,6 +506,21 @@ export const TECHNIQUE_TITLE_TO_ID: Record<string, TechniqueId> = {
   'Almost Locked Sets': TechniqueId.ALMOST_LOCKED_SETS,
   'Finned Squirmbag': TechniqueId.FINNED_SQUIRMBAG,
   'ALS Chain': TechniqueId.ALS_CHAIN,
+  // New techniques added to solver
+  'Skyscraper': TechniqueId.SKYSCRAPER,
+  'Two-String Kite': TechniqueId.TWO_STRING_KITE,
+  'Empty Rectangle': TechniqueId.EMPTY_RECTANGLE,
+  'Simple Coloring': TechniqueId.SIMPLE_COLORING,
+  'W-Wing': TechniqueId.W_WING,
+  'Remote Pairs': TechniqueId.REMOTE_PAIRS,
+  'Unique Rectangle Type 1': TechniqueId.UNIQUE_RECTANGLE_1,
+  'Unique Rectangle Type 2': TechniqueId.UNIQUE_RECTANGLE_2,
+  'BUG+1': TechniqueId.BUG_PLUS_1,
+  'Sue de Coq': TechniqueId.SUE_DE_COQ,
+  'ALS-XZ': TechniqueId.ALS_XZ,
+  'X-Cycles': TechniqueId.X_CYCLES,
+  'Forcing Chains': TechniqueId.FORCING_CHAINS,
+  '3D Medusa': TechniqueId.MEDUSA_COLORING,
 };
 
 /** Convert a TechniqueId to its bit position in the bitfield */
