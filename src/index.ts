@@ -338,6 +338,35 @@ export interface SolverHintCell {
   actions: SolverCellActions;
 }
 
+/** Link type for chain visualization */
+export type SolverLinkType = 'strong' | 'weak';
+
+/** A link between two cells in a chain */
+export interface SolverLink {
+  /** Start row index (0-8) */
+  fromRow: number;
+  /** Start column index (0-8) */
+  fromCol: number;
+  /** End row index (0-8) */
+  toRow: number;
+  /** End column index (0-8) */
+  toCol: number;
+  /** Link type: "strong" (conjugate pair) or "weak" (same house) */
+  type: SolverLinkType;
+  /** The digit this link applies to (1-9) */
+  digit: number;
+}
+
+/** A group of cells for pattern visualization */
+export interface SolverCellGroup {
+  /** Group name (e.g., "ALS A", "Conjugate Pair", "UR Corner") */
+  name: string;
+  /** Highlight color */
+  color: SolverColor;
+  /** Array of [row, col] pairs */
+  cells: number[][];
+}
+
 /** A single hint step for solving */
 export interface SolverHintStep {
   /** Name of the solving technique */
@@ -348,6 +377,12 @@ export interface SolverHintStep {
   areas: SolverHintArea[];
   /** Cells involved in the hint */
   cells: SolverHintCell[];
+  /** Optional: Links for chain visualization */
+  links?: SolverLink[];
+  /** Optional: Cell groups for pattern visualization */
+  groups?: SolverCellGroup[];
+  /** Optional: Primary digit for single-digit techniques (1-9) */
+  digit?: number;
 }
 
 /** Hints data from solver */
