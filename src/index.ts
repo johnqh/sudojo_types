@@ -596,21 +596,22 @@ export const TECHNIQUE_TITLE_TO_ID: Record<string, TechniqueId> = {
 /** Convert a TechniqueId to its bit position in the bitfield */
 // Uses BigInt internally to support techniques >= 32, then converts to Number
 // (safe since we have < 52 techniques, well within Number.MAX_SAFE_INTEGER)
+// TechniqueId N maps to bit N (1 << N)
 export function techniqueToBit(techniqueId: TechniqueId): number {
-  return Number(BigInt(1) << BigInt(techniqueId - 1));
+  return Number(BigInt(1) << BigInt(techniqueId));
 }
 
 /** Check if a technique is present in a bitfield */
 // Uses BigInt internally to support techniques >= 32
 export function hasTechnique(bitfield: number, techniqueId: TechniqueId): boolean {
-  const bit = BigInt(1) << BigInt(techniqueId - 1);
+  const bit = BigInt(1) << BigInt(techniqueId);
   return (BigInt(bitfield) & bit) !== BigInt(0);
 }
 
 /** Add a technique to a bitfield */
 // Uses BigInt internally to support techniques >= 32
 export function addTechnique(bitfield: number, techniqueId: TechniqueId): number {
-  const bit = BigInt(1) << BigInt(techniqueId - 1);
+  const bit = BigInt(1) << BigInt(techniqueId);
   return Number(BigInt(bitfield) | bit);
 }
 
