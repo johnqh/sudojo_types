@@ -1246,3 +1246,520 @@ export function noScramble(puzzle: string, solution: string): ScrambleResult {
     reverseDigitMapping: identityMapping,
   };
 }
+
+// =============================================================================
+// Solver Utilities (shared between frontend and backend)
+// =============================================================================
+
+/**
+ * Check if all cells are filled (no empty cells remaining).
+ * A cell is considered filled if either the original puzzle has a digit
+ * or the user has entered a digit.
+ *
+ * @param original - 81-char original puzzle string (0 = empty)
+ * @param user - 81-char user input string (0 = no input)
+ * @returns true if all 81 cells have a non-zero digit
+ *
+ * @example
+ * ```typescript
+ * const original = '530070000...'; // partial puzzle
+ * const user = '000000000...';     // no user input yet
+ * isBoardFilled(original, user);   // false
+ * ```
+ */
+export function isBoardFilled(original: string, user: string): boolean {
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    const originalChar = original[i] || '0';
+    const userChar = user[i] || '0';
+    const actualChar = userChar !== '0' ? userChar : originalChar;
+    if (actualChar === '0') return false;
+  }
+  return true;
+}
+
+/**
+ * Check if all cells are filled AND match the solution.
+ * Useful for validating that a puzzle is correctly solved.
+ *
+ * @param original - 81-char original puzzle string (0 = empty)
+ * @param user - 81-char user input string (0 = no input)
+ * @param solution - 81-char solution string
+ * @returns true if board is filled and all values match solution
+ *
+ * @example
+ * ```typescript
+ * isBoardSolved(original, userInput, solution); // true if correctly solved
+ * ```
+ */
+export function isBoardSolved(
+  original: string,
+  user: string,
+  solution: string
+): boolean {
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    const originalChar = original[i] || '0';
+    const userChar = user[i] || '0';
+    const solutionChar = solution[i] || '0';
+    const actualChar = userChar !== '0' ? userChar : originalChar;
+    if (actualChar === '0') return false;
+    if (actualChar !== solutionChar) return false;
+  }
+  return true;
+}
+
+/**
+ * Get the current board state by merging original puzzle and user input.
+ * For each cell, returns the user's input if non-zero, otherwise the original value.
+ *
+ * @param original - 81-char original puzzle string (0 = empty)
+ * @param user - 81-char user input string (0 = no input)
+ * @returns 81-char string representing current board state
+ *
+ * @example
+ * ```typescript
+ * const original = '530070000...';
+ * const user = '006000000...';
+ * getMergedBoardState(original, user); // '536070000...'
+ * ```
+ */
+export function getMergedBoardState(original: string, user: string): string {
+  let result = '';
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    const originalChar = original[i] || '0';
+    const userChar = user[i] || '0';
+    result += userChar !== '0' ? userChar : originalChar;
+  }
+  return result;
+}
+
+/**
+ * Check for "Invalid Pencilmarks" error in hint steps.
+ * This indicates the solver detected inconsistent pencilmarks.
+ *
+ * @param steps - Array of hint steps from solver response
+ * @returns true if any step has title "Invalid Pencilmarks"
+ *
+ * @example
+ * ```typescript
+ * if (hasInvalidPencilmarksStep(response.data.hints.steps)) {
+ *   throw new Error('Invalid pencilmarks detected');
+ * }
+ * ```
+ */
+export function hasInvalidPencilmarksStep(
+  steps: Array<{ title?: string }> | undefined
+): boolean {
+  if (!steps) return false;
+  return steps.some(step => step.title === 'Invalid Pencilmarks');
+}
+
+/**
+ * Check if pencilmarks string has actual content (not just empty commas).
+ * Pencilmarks are stored as comma-separated values like "123,45,9,,...".
+ * An "empty" pencilmarks string would be all commas: ",,,,,...".
+ *
+ * @param pencilmarks - Comma-separated pencilmarks string
+ * @returns true if there are actual pencilmark values
+ *
+ * @example
+ * ```typescript
+ * hasPencilmarkContent('123,45,,9,');  // true
+ * hasPencilmarkContent(',,,,,,,,');    // false
+ * hasPencilmarkContent('');            // false
+ * ```
+ */
+export function hasPencilmarkContent(pencilmarks: string): boolean {
+  return pencilmarks.replace(/,/g, '').length > 0;
+}
+
+// Reverse lookup map from TechniqueId to title (computed once)
+const TECHNIQUE_ID_TO_TITLE: Record<number, string> = Object.fromEntries(
+  Object.entries(TECHNIQUE_TITLE_TO_ID).map(([title, id]) => [id, title])
+);
+
+/**
+ * Get the technique title/name from its ID.
+ * Inverse of TECHNIQUE_TITLE_TO_ID lookup.
+ *
+ * @param techniqueId - The technique ID number
+ * @returns The technique title, or "Technique {id}" if unknown
+ *
+ * @example
+ * ```typescript
+ * getTechniqueNameById(1);  // "Full House"
+ * getTechniqueNameById(14); // "XY-Wing"
+ * getTechniqueNameById(999); // "Technique 999"
+ * ```
+ */
+export function getTechniqueNameById(techniqueId: number): string {
+  return TECHNIQUE_ID_TO_TITLE[techniqueId] ?? `Technique ${techniqueId}`;
+}
+
+// =============================================================================
+// Board State Constants
+// =============================================================================
+
+/**
+ * Empty board string (81 zeros) representing no user input.
+ * Used as default value for user input in solver APIs.
+ */
+export const EMPTY_BOARD = '0'.repeat(81);
+
+/**
+ * Empty pencilmarks string (80 commas = 81 empty elements).
+ * Used as default value for pencilmarks in solver APIs.
+ */
+export const EMPTY_PENCILMARKS = ','.repeat(80);
+
+// =============================================================================
+// Cell Notation Utilities
+// =============================================================================
+
+/**
+ * Format a cell position in R1C1 notation (1-indexed for human readability).
+ *
+ * @param row - Row index (0-8)
+ * @param col - Column index (0-8)
+ * @returns String like "R1C1" for top-left, "R9C9" for bottom-right
+ *
+ * @example
+ * ```typescript
+ * cellName(0, 0); // "R1C1"
+ * cellName(4, 4); // "R5C5"
+ * cellName(8, 8); // "R9C9"
+ * ```
+ */
+export function cellName(row: number, col: number): string {
+  return `R${row + 1}C${col + 1}`;
+}
+
+/**
+ * Format multiple cell positions as a comma-separated list in R1C1 notation.
+ *
+ * @param cells - Array of [row, col] pairs
+ * @returns String like "R1C1, R2C3, R5C5"
+ *
+ * @example
+ * ```typescript
+ * cellList([[0, 0], [1, 2], [4, 4]]); // "R1C1, R2C3, R5C5"
+ * ```
+ */
+export function cellList(cells: Array<[number, number]> | number[][]): string {
+  return cells.map(([row, col]) => cellName(row!, col!)).join(', ');
+}
+
+/**
+ * Get the block index (0-8) for a given cell position.
+ * Blocks are numbered left-to-right, top-to-bottom:
+ * ```
+ * 0 1 2
+ * 3 4 5
+ * 6 7 8
+ * ```
+ *
+ * @param row - Row index (0-8)
+ * @param col - Column index (0-8)
+ * @returns Block index (0-8)
+ *
+ * @example
+ * ```typescript
+ * getBlockIndex(0, 0); // 0 (top-left block)
+ * getBlockIndex(4, 4); // 4 (center block)
+ * getBlockIndex(8, 8); // 8 (bottom-right block)
+ * ```
+ */
+export function getBlockIndex(row: number, col: number): number {
+  return Math.floor(row / BLOCK_SIZE) * BLOCK_SIZE + Math.floor(col / BLOCK_SIZE);
+}
+
+/**
+ * Get the block number (1-9) for a given cell position.
+ * Same as getBlockIndex but 1-indexed for human readability.
+ *
+ * @param row - Row index (0-8)
+ * @param col - Column index (0-8)
+ * @returns Block number (1-9)
+ */
+export function getBlockNumber(row: number, col: number): number {
+  return getBlockIndex(row, col) + 1;
+}
+
+/**
+ * Convert a flat cell index (0-80) to row and column.
+ *
+ * @param index - Flat index (0-80)
+ * @returns [row, col] tuple (both 0-8)
+ *
+ * @example
+ * ```typescript
+ * indexToRowCol(0);  // [0, 0]
+ * indexToRowCol(40); // [4, 4]
+ * indexToRowCol(80); // [8, 8]
+ * ```
+ */
+export function indexToRowCol(index: number): [number, number] {
+  return [Math.floor(index / BOARD_SIZE), index % BOARD_SIZE];
+}
+
+/**
+ * Convert row and column to a flat cell index (0-80).
+ *
+ * @param row - Row index (0-8)
+ * @param col - Column index (0-8)
+ * @returns Flat index (0-80)
+ *
+ * @example
+ * ```typescript
+ * rowColToIndex(0, 0); // 0
+ * rowColToIndex(4, 4); // 40
+ * rowColToIndex(8, 8); // 80
+ * ```
+ */
+export function rowColToIndex(row: number, col: number): number {
+  return row * BOARD_SIZE + col;
+}
+
+// =============================================================================
+// Time Formatting Utilities
+// =============================================================================
+
+/**
+ * Format seconds as MM:SS or HH:MM:SS.
+ *
+ * @param seconds - Total seconds to format
+ * @returns Formatted time string
+ *
+ * @example
+ * ```typescript
+ * formatTime(65);    // "01:05"
+ * formatTime(3661);  // "01:01:01"
+ * formatTime(0);     // "00:00"
+ * ```
+ */
+export function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Parse MM:SS or HH:MM:SS time string to seconds.
+ *
+ * @param timeString - Time string in MM:SS or HH:MM:SS format
+ * @returns Total seconds, or 0 if invalid format
+ *
+ * @example
+ * ```typescript
+ * parseTime("01:05");     // 65
+ * parseTime("01:01:01");  // 3661
+ * parseTime("invalid");   // 0
+ * ```
+ */
+export function parseTime(timeString: string): number {
+  const parts = timeString.split(':').map(p => parseInt(p, 10));
+  if (parts.some(isNaN)) return 0;
+
+  if (parts.length === 2) {
+    return (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+  } else if (parts.length === 3) {
+    return (parts[0] ?? 0) * 3600 + (parts[1] ?? 0) * 60 + (parts[2] ?? 0);
+  }
+  return 0;
+}
+
+/**
+ * Format a set of digits like {1, 2, 3} for display.
+ *
+ * @param digits - String or array of digits
+ * @returns Formatted string like "{1, 2, 3}"
+ *
+ * @example
+ * ```typescript
+ * formatDigits("123");     // "{1, 2, 3}"
+ * formatDigits([1, 2, 3]); // "{1, 2, 3}"
+ * ```
+ */
+export function formatDigits(digits: string | number[]): string {
+  const arr = typeof digits === 'string' ? digits.split('') : digits.map(String);
+  return `{${arr.join(', ')}}`;
+}
+
+// =============================================================================
+// UUID Validation Utilities
+// =============================================================================
+
+/** UUID regex pattern (lowercase or uppercase) */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Check if a string is a valid UUID format.
+ *
+ * @param id - String to validate
+ * @returns true if valid UUID format
+ *
+ * @example
+ * ```typescript
+ * isValidUUID('123e4567-e89b-12d3-a456-426614174000'); // true
+ * isValidUUID('not-a-uuid'); // false
+ * ```
+ */
+export function isValidUUID(id: string): boolean {
+  return UUID_PATTERN.test(id);
+}
+
+/**
+ * Validate a UUID and throw if invalid.
+ *
+ * @param uuid - UUID string to validate
+ * @param name - Optional name for error message (e.g., "Board UUID")
+ * @returns The validated UUID string
+ * @throws Error if UUID is missing or invalid format
+ *
+ * @example
+ * ```typescript
+ * const id = validateUUID(params.id, 'Board UUID'); // throws if invalid
+ * ```
+ */
+export function validateUUID(uuid: string, name: string = 'UUID'): string {
+  if (!uuid) {
+    throw new Error(`${name} is required`);
+  }
+  if (!isValidUUID(uuid)) {
+    throw new Error(
+      `Invalid ${name} format: "${uuid}". Expected UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)`
+    );
+  }
+  return uuid;
+}
+
+// =============================================================================
+// Solver API Option Types
+// =============================================================================
+
+/**
+ * Options for the solver /solve API call.
+ * Used to get hints for solving a puzzle step by step.
+ */
+export interface SolveOptions {
+  /** 81-character puzzle string (original clues) */
+  original: string;
+  /** 81-character user input string (current progress) */
+  user: string;
+  /** Whether auto-pencilmarks are enabled */
+  autoPencilmarks?: boolean;
+  /** Comma-separated pencilmarks string (81 elements) */
+  pencilmarks?: string;
+  /** Optional technique filters (legacy) */
+  filters?: string;
+  /** Optional comma-delimited list of technique numbers to filter solving (e.g., "1,2,3") */
+  techniques?: string;
+}
+
+/**
+ * Options for the solver /validate API call.
+ * Used to validate a puzzle has a unique solution.
+ */
+export interface ValidateOptions {
+  /** 81-character puzzle string */
+  original: string;
+  /** Whether auto-pencilmarks are enabled (for iterative validation) */
+  autoPencilmarks?: boolean;
+}
+
+/**
+ * Options for the solver /generate API call.
+ * Used to generate a new random puzzle.
+ */
+export interface GenerateOptions {
+  /** Whether to generate a symmetrical puzzle */
+  symmetrical?: boolean;
+}
+
+// =============================================================================
+// Technique URL Utilities
+// =============================================================================
+
+/**
+ * Convert technique title to icon filename/URL path.
+ *
+ * @param title - Technique title (e.g., "Full House", "X-Wing")
+ * @returns Icon URL path (e.g., "/technique.full.house.svg")
+ *
+ * @example
+ * ```typescript
+ * getTechniqueIconUrl("Full House"); // "/technique.full.house.svg"
+ * getTechniqueIconUrl("X-Wing");     // "/technique.x.wing.svg"
+ * getTechniqueIconUrl("XY-Wing");    // "/technique.xy.wing.svg"
+ * ```
+ */
+export function getTechniqueIconUrl(title: string): string {
+  const normalized = title
+    .toLowerCase()
+    .replace(/\s+/g, '.') // spaces to dots
+    .replace(/-/g, '.');  // hyphens to dots
+  return `/technique.${normalized}.svg`;
+}
+
+/** Map technique titles to HTML help file paths */
+export const TECHNIQUE_TO_HELP_FILE: Record<string, string> = {
+  'Full House': 'Full_House.html',
+  'Naked Single': 'Naked_Single.html',
+  'Hidden Single': 'Hidden_Single.html',
+  'Naked Pair': 'Naked_Pair.html',
+  'Hidden Pair': 'Hidden_Pair.html',
+  'Locked Candidates': 'Locked_Candidates.html',
+  'Naked Triple': 'Naked_Triple.html',
+  'Hidden Triple': 'Hidden_Triple.html',
+  'Naked Quad': 'Naked_Quad.html',
+  'Hidden Quad': 'Hidden_Quad.html',
+  'X-Wing': 'X-Wing.html',
+  'Swordfish': 'Swordfish.html',
+  'Jellyfish': 'Jellyfish.html',
+  'Squirmbag': 'Squirmbag.html',
+  'XY-Wing': 'XY-Wing.html',
+  'XYZ-Wing': 'XYZ-Wing.html',
+  'WXYZ-Wing': 'WXYZ-Wing.html',
+  'Finned X-Wing': 'Finned_X-Wing.html',
+  'Finned Swordfish': 'Finned_Swordfish.html',
+  'Finned Jellyfish': 'Finned_Jellyfish.html',
+  'Finned Squirmbag': 'Finned_Squirmbag.html',
+  'Almost Locked Sets': 'Almost_Locked_Sets.html',
+  'ALS Chain': 'ALS-Chain.html',
+  'ALS-Chain': 'ALS-Chain.html',
+};
+
+/** Reverse mapping: HTML file name (lowercase) -> technique title */
+export const HELP_FILE_TO_TECHNIQUE: Record<string, string> = Object.fromEntries(
+  Object.entries(TECHNIQUE_TO_HELP_FILE).map(([title, file]) => [file.toLowerCase(), title])
+);
+
+/**
+ * Get help file URL for a technique.
+ *
+ * @param techniqueTitle - Technique title
+ * @returns Help file URL path (e.g., "/help/Full_House.html")
+ */
+export function getHelpFileUrl(techniqueTitle: string): string {
+  const fileName = TECHNIQUE_TO_HELP_FILE[techniqueTitle];
+  if (fileName) {
+    return `/help/${fileName}`;
+  }
+  // Generate filename from title (spaces to underscores, preserve hyphens)
+  const generatedFileName = `${techniqueTitle.replace(/\s+/g, '_')}.html`;
+  return `/help/${generatedFileName}`;
+}
+
+/**
+ * Get technique title from help file name.
+ *
+ * @param fileName - Help file name (e.g., "Full_House.html")
+ * @returns Technique title or undefined if not found
+ */
+export function getTechniqueFromHelpFile(fileName: string): string | undefined {
+  return HELP_FILE_TO_TECHNIQUE[fileName.toLowerCase()];
+}

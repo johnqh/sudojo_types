@@ -19,6 +19,14 @@ import {
   scrambleBoard,
   noScramble,
   DEFAULT_SCRAMBLE_CONFIG,
+  // Solver utilities
+  isBoardFilled,
+  isBoardSolved,
+  getMergedBoardState,
+  hasInvalidPencilmarksStep,
+  hasPencilmarkContent,
+  getTechniqueNameById,
+  TechniqueId,
   type ScrambleConfig,
   type ScrambleResult,
   type Belt,
@@ -855,6 +863,175 @@ describe('Scramble Utilities', () => {
       expectTypeOf(result.reverseDigitMapping).toEqualTypeOf<
         Map<number, number>
       >();
+    });
+  });
+});
+
+// =============================================================================
+// Solver Utilities Tests
+// =============================================================================
+
+describe('Solver Utilities', () => {
+  const validPuzzle =
+    '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+  const validSolution =
+    '534678912672195348198342567859761423426853791713924856961537284287419635345286179';
+  const emptyUser = '0'.repeat(81);
+
+  describe('isBoardFilled', () => {
+    it('should return false for empty board', () => {
+      expect(isBoardFilled(emptyUser, emptyUser)).toBe(false);
+    });
+
+    it('should return false for partial puzzle with no user input', () => {
+      expect(isBoardFilled(validPuzzle, emptyUser)).toBe(false);
+    });
+
+    it('should return true when puzzle + user fills all cells', () => {
+      // Create user input that fills in the zeros
+      let userInput = '';
+      for (let i = 0; i < 81; i++) {
+        if (validPuzzle[i] === '0') {
+          userInput += validSolution[i];
+        } else {
+          userInput += '0';
+        }
+      }
+      expect(isBoardFilled(validPuzzle, userInput)).toBe(true);
+    });
+
+    it('should return true for fully filled solution', () => {
+      expect(isBoardFilled(validSolution, emptyUser)).toBe(true);
+    });
+
+    it('should handle user input overriding original', () => {
+      // User fills in everything
+      expect(isBoardFilled(validPuzzle, validSolution)).toBe(true);
+    });
+  });
+
+  describe('isBoardSolved', () => {
+    it('should return false for empty board', () => {
+      expect(isBoardSolved(emptyUser, emptyUser, validSolution)).toBe(false);
+    });
+
+    it('should return false for unfilled board', () => {
+      expect(isBoardSolved(validPuzzle, emptyUser, validSolution)).toBe(false);
+    });
+
+    it('should return true when correctly solved', () => {
+      let userInput = '';
+      for (let i = 0; i < 81; i++) {
+        if (validPuzzle[i] === '0') {
+          userInput += validSolution[i];
+        } else {
+          userInput += '0';
+        }
+      }
+      expect(isBoardSolved(validPuzzle, userInput, validSolution)).toBe(true);
+    });
+
+    it('should return false when filled but incorrect', () => {
+      // Fill with wrong values
+      const wrongSolution = '1'.repeat(81);
+      expect(isBoardSolved(emptyUser, wrongSolution, validSolution)).toBe(false);
+    });
+  });
+
+  describe('getMergedBoardState', () => {
+    it('should return original when user has no input', () => {
+      expect(getMergedBoardState(validPuzzle, emptyUser)).toBe(validPuzzle);
+    });
+
+    it('should override with user input when present', () => {
+      const userInput = '100000000' + '0'.repeat(72);
+      const result = getMergedBoardState(validPuzzle, userInput);
+      expect(result[0]).toBe('1'); // User override
+      expect(result[1]).toBe('3'); // Original preserved
+    });
+
+    it('should return complete solution when user fills all', () => {
+      let userInput = '';
+      for (let i = 0; i < 81; i++) {
+        if (validPuzzle[i] === '0') {
+          userInput += validSolution[i];
+        } else {
+          userInput += '0';
+        }
+      }
+      expect(getMergedBoardState(validPuzzle, userInput)).toBe(validSolution);
+    });
+  });
+
+  describe('hasInvalidPencilmarksStep', () => {
+    it('should return false for undefined', () => {
+      expect(hasInvalidPencilmarksStep(undefined)).toBe(false);
+    });
+
+    it('should return false for empty array', () => {
+      expect(hasInvalidPencilmarksStep([])).toBe(false);
+    });
+
+    it('should return false for steps without Invalid Pencilmarks', () => {
+      const steps = [
+        { title: 'Naked Single' },
+        { title: 'Hidden Single' },
+      ];
+      expect(hasInvalidPencilmarksStep(steps)).toBe(false);
+    });
+
+    it('should return true when Invalid Pencilmarks is present', () => {
+      const steps = [
+        { title: 'Naked Single' },
+        { title: 'Invalid Pencilmarks' },
+      ];
+      expect(hasInvalidPencilmarksStep(steps)).toBe(true);
+    });
+
+    it('should handle steps with missing title', () => {
+      const steps = [{}, { title: 'Test' }];
+      expect(hasInvalidPencilmarksStep(steps)).toBe(false);
+    });
+  });
+
+  describe('hasPencilmarkContent', () => {
+    it('should return false for empty string', () => {
+      expect(hasPencilmarkContent('')).toBe(false);
+    });
+
+    it('should return false for only commas', () => {
+      expect(hasPencilmarkContent(','.repeat(80))).toBe(false);
+    });
+
+    it('should return true for string with digits', () => {
+      expect(hasPencilmarkContent('123,45,,9,,')).toBe(true);
+    });
+
+    it('should return true for single digit', () => {
+      expect(hasPencilmarkContent('1' + ','.repeat(80))).toBe(true);
+    });
+  });
+
+  describe('getTechniqueNameById', () => {
+    it('should return correct name for known techniques', () => {
+      expect(getTechniqueNameById(TechniqueId.FULL_HOUSE)).toBe('Full House');
+      expect(getTechniqueNameById(TechniqueId.HIDDEN_SINGLE)).toBe('Hidden Single');
+      expect(getTechniqueNameById(TechniqueId.NAKED_SINGLE)).toBe('Naked Single');
+      expect(getTechniqueNameById(TechniqueId.XY_WING)).toBe('XY-Wing');
+    });
+
+    it('should return fallback for unknown technique', () => {
+      expect(getTechniqueNameById(999)).toBe('Technique 999');
+    });
+
+    it('should handle all defined TechniqueId values', () => {
+      // Verify each TechniqueId has a name
+      Object.values(TechniqueId)
+        .filter((v): v is number => typeof v === 'number')
+        .forEach((id) => {
+          const name = getTechniqueNameById(id);
+          expect(name).not.toContain('Technique '); // Should have real name
+        });
     });
   });
 });
