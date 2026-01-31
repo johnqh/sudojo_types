@@ -1445,7 +1445,7 @@ export function cellName(row: number, col: number): string {
  * ```
  */
 export function cellList(cells: Array<[number, number]> | number[][]): string {
-  return cells.map(([row, col]) => cellName(row!, col!)).join(', ');
+  return cells.map(([row, col]) => cellName(row ?? 0, col ?? 0)).join(', ');
 }
 
 /**
