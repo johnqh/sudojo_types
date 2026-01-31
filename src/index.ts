@@ -199,12 +199,32 @@ export interface LearningQueryParams {
 
 export interface BoardQueryParams {
   level: Optional<number>;
+  limit: Optional<number>;
+  offset: Optional<number>;
+  techniques: Optional<number>;
 }
 
 export interface ChallengeQueryParams {
   level: Optional<number>;
   difficulty: Optional<string>;
 }
+
+export interface TechniqueExampleQueryParams {
+  technique: Optional<number>;
+}
+
+// =============================================================================
+// Counts Response Types
+// =============================================================================
+
+/** Response data for /api/v1/boards/counts */
+export interface BoardCountsData {
+  total: number;
+  withoutTechniques: number;
+}
+
+/** Response data for /api/v1/examples/counts - map of technique ID to count */
+export type ExampleCountsData = Record<string, number>;
 
 // =============================================================================
 // Response Helper Types
