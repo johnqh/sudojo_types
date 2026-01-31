@@ -427,6 +427,17 @@ export interface SolverHints {
 }
 
 /**
+ * Points earned from using a hint.
+ * Returned by /solver/solve when user has an active game session.
+ */
+export interface HintPointsEarned {
+  /** Points earned for this hint (2 × technique level) */
+  points: number;
+  /** The technique level that determined the points */
+  techniqueLevel: number;
+}
+
+/**
  * Response data for /solver/solve endpoint.
  * Contains the board state after the hint is applied and hint information.
  */
@@ -435,6 +446,8 @@ export interface SolveData {
   board: SolverBoard;
   /** Hint information including technique, level, and steps */
   hints: SolverHints;
+  /** Points earned for using this hint (only present if user has active session) */
+  points?: HintPointsEarned;
 }
 
 // =============================================================================
@@ -1762,4 +1775,143 @@ export function getHelpFileUrl(techniqueTitle: string): string {
  */
 export function getTechniqueFromHelpFile(fileName: string): string | undefined {
   return HELP_FILE_TO_TECHNIQUE[fileName.toLowerCase()];
+}
+
+// =============================================================================
+// Gamification Types (Points, Badges, Levels)
+// =============================================================================
+
+/** User gamification stats */
+export interface UserStats {
+  totalPoints: number;
+  userLevel: number;
+  gamesCompleted: number;
+}
+
+/** Badge definition */
+export interface BadgeDefinition {
+  id: string;
+  badgeType: string;
+  badgeKey: string;
+  title: string;
+  description: string | null;
+  iconUrl: string | null;
+  requirementValue: number | null;
+  createdAt: string | null;
+}
+
+/** User's earned badge with full badge info */
+export interface EarnedBadge {
+  badgeKey: string;
+  earnedAt: string | null;
+  title: string;
+  description: string | null;
+  iconUrl: string | null;
+  badgeType: string;
+  requirementValue: number | null;
+}
+
+/** Game session info */
+export interface GameSession {
+  sessionId: string;
+  board: string;
+  level: number;
+  puzzleType: 'daily' | 'level';
+  puzzleId: string | null;
+  hintUsed: boolean;
+  hintsCount: number;
+  startedAt: string;
+}
+
+/** Request to start a game session */
+export interface GameStartRequest {
+  board: string;
+  solution: string;
+  level: number;
+  techniques: number;
+  puzzleType: 'daily' | 'level';
+  puzzleId?: string;
+}
+
+/** Response from starting a game session */
+export interface GameStartResponse {
+  sessionId: string;
+  startedAt: string;
+}
+
+/** Request to finish a game session */
+export interface GameFinishRequest {
+  elapsedTime: number;
+}
+
+/** Points breakdown from finishing a game session */
+export interface GameFinishPoints {
+  /** Base points for puzzle level (2^level) */
+  basePoints: number;
+  /** Multiplier for completing without hints (10 if no hints, 1 otherwise) */
+  noHintMultiplier: number;
+  /** Multiplier for completing without interruption (2 if no interruption, 1 otherwise) */
+  noInterruptionMultiplier: number;
+  /** Total points earned from this puzzle (basePoints × multipliers) */
+  totalPoints: number;
+}
+
+/** Level up information (only present if user leveled up) */
+export interface GameFinishLevel {
+  /** The user's new level after leveling up */
+  newUserLevel: number;
+}
+
+/** Badge earned from game completion */
+export interface NewBadge {
+  badgeKey: string;
+  title: string;
+  description: string | null;
+}
+
+/** Response from finishing a game session */
+export interface GameFinishResponse {
+  /** Points earned from this puzzle (hint points awarded separately via /solver/solve) */
+  points: GameFinishPoints;
+  /** Level up information (only present if user leveled up) */
+  level?: GameFinishLevel;
+  /** New badges earned (only present if badges were earned) */
+  badges?: NewBadge[];
+}
+
+/** Full gamification stats including earned badges */
+export interface GamificationStats {
+  totalPoints: number;
+  userLevel: number;
+  gamesCompleted: number;
+  badges: EarnedBadge[];
+}
+
+/** Point transaction record */
+export interface PointTransaction {
+  id: string;
+  userId: string;
+  points: number;
+  transactionType: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string | null;
+}
+
+/** Badge definition create request (admin) */
+export interface BadgeDefinitionCreateRequest {
+  badgeType: string;
+  badgeKey: string;
+  title: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  requirementValue?: number | null;
+}
+
+/** Badge definition update request (admin) */
+export interface BadgeDefinitionUpdateRequest {
+  badgeType?: string;
+  title?: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  requirementValue?: number | null;
 }
