@@ -202,6 +202,7 @@ export interface BoardQueryParams {
   limit: Optional<number>;
   offset: Optional<number>;
   techniques: Optional<number>;
+  technique_bit: Optional<number>;
 }
 
 export interface ChallengeQueryParams {
