@@ -32,6 +32,7 @@ export interface Technique {
   technique: number;
   level: number | null;
   title: string;
+  path: string | null;
   text: string | null;
   created_at: Date | null;
   updated_at: Date | null;
