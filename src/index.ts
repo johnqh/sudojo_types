@@ -33,6 +33,7 @@ export interface Technique {
   level: number | null;
   title: string;
   path: string | null;
+  dependencies: string | null;
   text: string | null;
   created_at: Date | null;
   updated_at: Date | null;
