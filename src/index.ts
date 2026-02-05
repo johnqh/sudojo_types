@@ -391,11 +391,22 @@ export interface SolverCellGroup {
   cells: number[][];
 }
 
+/**
+ * Localization data for a hint step.
+ * Used for client-side i18n translation of hint text.
+ */
+export interface LocalizedHint {
+  /** The i18n key for this hint text (e.g., "hints.fullHouse.row.step1") */
+  stringKey: string;
+  /** Interpolation values as strings (e.g., ["3"] for row 3) */
+  values: string[];
+}
+
 /** A single hint step for solving */
 export interface SolverHintStep {
   /** Name of the solving technique */
   title: string;
-  /** Explanation of the technique */
+  /** Explanation of the technique (fallback text for debugging) */
   text: string;
   /** Areas to highlight */
   areas: SolverHintArea[];
@@ -407,6 +418,8 @@ export interface SolverHintStep {
   groups?: SolverCellGroup[];
   /** Optional: Primary digit for single-digit techniques (1-9) */
   digit?: number;
+  /** Optional: Localization data for i18n translation */
+  localization?: LocalizedHint;
 }
 
 /**
