@@ -201,6 +201,7 @@ export interface LearningQueryParams {
 
 export interface BoardQueryParams {
   level: Optional<number>;
+  symmetrical: Optional<boolean>;
   limit: Optional<number>;
   offset: Optional<number>;
   techniques: Optional<number>;
