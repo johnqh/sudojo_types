@@ -603,69 +603,10 @@ export enum TechniqueId {
   GROUPED_X_CYCLES = 60,
 }
 
-/** Map technique title strings (from solver API hints.steps[].title) to TechniqueId */
-export const TECHNIQUE_TITLE_TO_ID: Record<string, TechniqueId> = {
-  'Full House': TechniqueId.FULL_HOUSE,
-  'Hidden Single': TechniqueId.HIDDEN_SINGLE,
-  'Naked Single': TechniqueId.NAKED_SINGLE,
-  'Hidden Pair': TechniqueId.HIDDEN_PAIR,
-  'Naked Pair': TechniqueId.NAKED_PAIR,
-  'Locked Candidates': TechniqueId.LOCKED_CANDIDATES,
-  'Hidden Triple': TechniqueId.HIDDEN_TRIPLE,
-  'Naked Triple': TechniqueId.NAKED_TRIPLE,
-  'Hidden Quad': TechniqueId.HIDDEN_QUAD,
-  'Naked Quad': TechniqueId.NAKED_QUAD,
-  'X-Wing': TechniqueId.X_WING,
-  'Swordfish': TechniqueId.SWORDFISH,
-  'Jellyfish': TechniqueId.JELLYFISH,
-  'XY-Wing': TechniqueId.XY_WING,
-  'Finned X-Wing': TechniqueId.FINNED_X_WING,
-  'Squirmbag': TechniqueId.SQUIRMBAG,
-  'Finned Swordfish': TechniqueId.FINNED_SWORDFISH,
-  'Finned Jellyfish': TechniqueId.FINNED_JELLYFISH,
-  'XYZ-Wing': TechniqueId.XYZ_WING,
-  'WXYZ-Wing': TechniqueId.WXYZ_WING,
-  'Almost Locked Sets': TechniqueId.ALMOST_LOCKED_SETS,
-  'Finned Squirmbag': TechniqueId.FINNED_SQUIRMBAG,
-  'ALS Chain': TechniqueId.ALS_CHAIN,
-  'Skyscraper': TechniqueId.SKYSCRAPER,
-  'Two-String Kite': TechniqueId.TWO_STRING_KITE,
-  'Empty Rectangle': TechniqueId.EMPTY_RECTANGLE,
-  'Simple Coloring': TechniqueId.SIMPLE_COLORING,
-  'W-Wing': TechniqueId.W_WING,
-  'Remote Pairs': TechniqueId.REMOTE_PAIRS,
-  'Unique Rectangle Type 1': TechniqueId.UNIQUE_RECTANGLE_1,
-  'Unique Rectangle Type 2': TechniqueId.UNIQUE_RECTANGLE_2,
-  'BUG+1': TechniqueId.BUG_PLUS_1,
-  'Sue de Coq': TechniqueId.SUE_DE_COQ,
-  'ALS-XZ': TechniqueId.ALS_XZ,
-  'X-Cycles': TechniqueId.X_CYCLES,
-  'Forcing Chains': TechniqueId.FORCING_CHAINS,
-  '3D Medusa': TechniqueId.MEDUSA_COLORING,
-  'Crane': TechniqueId.CRANE,
-  'Unique Rectangle Type 3': TechniqueId.UNIQUE_RECTANGLE_3,
-  'Unique Rectangle Type 4': TechniqueId.UNIQUE_RECTANGLE_4,
-  'Unique Rectangle Type 5': TechniqueId.UNIQUE_RECTANGLE_5,
-  'X-Chain': TechniqueId.X_CHAIN,
-  'XY-Chain': TechniqueId.XY_CHAIN,
-  'VWXYZ-Wing': TechniqueId.VWXYZ_WING,
-  'UVWXYZ-Wing': TechniqueId.UVWXYZ_WING,
-  'TUVWXYZ-Wing': TechniqueId.TUVWXYZ_WING,
-  'STUVWXYZ-Wing': TechniqueId.STUVWXYZ_WING,
-  'AIC': TechniqueId.AIC,
-  'Forcing Net': TechniqueId.FORCING_NET,
-  'Avoidable Rectangle': TechniqueId.AVOIDABLE_RECTANGLE,
-  'Sashimi X-Wing': TechniqueId.SASHIMI_X_WING,
-  'Sashimi Swordfish': TechniqueId.SASHIMI_SWORDFISH,
-  'Sashimi Jellyfish': TechniqueId.SASHIMI_JELLYFISH,
-  'Hidden Unique Rectangle': TechniqueId.HIDDEN_UNIQUE_RECTANGLE,
-  'Firework': TechniqueId.FIREWORK,
-  'Death Blossom': TechniqueId.DEATH_BLOSSOM,
-  'Franken X-Wing': TechniqueId.FRANKEN_X_WING,
-  'Franken Swordfish': TechniqueId.FRANKEN_SWORDFISH,
-  'Franken Jellyfish': TechniqueId.FRANKEN_JELLYFISH,
-  'Grouped X-Cycles': TechniqueId.GROUPED_X_CYCLES,
-};
+/** All technique IDs sorted by value (ascending) */
+export const ALL_TECHNIQUE_IDS: TechniqueId[] = Object.values(
+  TechniqueId
+).filter((v): v is TechniqueId => typeof v === 'number');
 
 /** Convert a TechniqueId to its bit position in the bitfield */
 // Uses BigInt internally to support techniques >= 32, then converts to Number
@@ -1446,14 +1387,72 @@ export function hasPencilmarkContent(pencilmarks: string): boolean {
   return pencilmarks.replace(/,/g, '').length > 0;
 }
 
-// Reverse lookup map from TechniqueId to title (computed once)
-const TECHNIQUE_ID_TO_TITLE: Record<number, string> = Object.fromEntries(
-  Object.entries(TECHNIQUE_TITLE_TO_ID).map(([title, id]) => [id, title])
-);
+/** Map from TechniqueId to display title */
+const TECHNIQUE_ID_TO_TITLE: Record<number, string> = {
+  [TechniqueId.FULL_HOUSE]: 'Full House',
+  [TechniqueId.HIDDEN_SINGLE]: 'Hidden Single',
+  [TechniqueId.NAKED_SINGLE]: 'Naked Single',
+  [TechniqueId.HIDDEN_PAIR]: 'Hidden Pair',
+  [TechniqueId.NAKED_PAIR]: 'Naked Pair',
+  [TechniqueId.LOCKED_CANDIDATES]: 'Locked Candidates',
+  [TechniqueId.HIDDEN_TRIPLE]: 'Hidden Triple',
+  [TechniqueId.NAKED_TRIPLE]: 'Naked Triple',
+  [TechniqueId.HIDDEN_QUAD]: 'Hidden Quad',
+  [TechniqueId.NAKED_QUAD]: 'Naked Quad',
+  [TechniqueId.X_WING]: 'X-Wing',
+  [TechniqueId.SWORDFISH]: 'Swordfish',
+  [TechniqueId.JELLYFISH]: 'Jellyfish',
+  [TechniqueId.XY_WING]: 'XY-Wing',
+  [TechniqueId.FINNED_X_WING]: 'Finned X-Wing',
+  [TechniqueId.SQUIRMBAG]: 'Squirmbag',
+  [TechniqueId.FINNED_SWORDFISH]: 'Finned Swordfish',
+  [TechniqueId.FINNED_JELLYFISH]: 'Finned Jellyfish',
+  [TechniqueId.XYZ_WING]: 'XYZ-Wing',
+  [TechniqueId.WXYZ_WING]: 'WXYZ-Wing',
+  [TechniqueId.ALMOST_LOCKED_SETS]: 'Almost Locked Sets',
+  [TechniqueId.FINNED_SQUIRMBAG]: 'Finned Squirmbag',
+  [TechniqueId.ALS_CHAIN]: 'ALS Chain',
+  [TechniqueId.SKYSCRAPER]: 'Skyscraper',
+  [TechniqueId.TWO_STRING_KITE]: 'Two-String Kite',
+  [TechniqueId.EMPTY_RECTANGLE]: 'Empty Rectangle',
+  [TechniqueId.SIMPLE_COLORING]: 'Simple Coloring',
+  [TechniqueId.W_WING]: 'W-Wing',
+  [TechniqueId.REMOTE_PAIRS]: 'Remote Pairs',
+  [TechniqueId.UNIQUE_RECTANGLE_1]: 'Unique Rectangle Type 1',
+  [TechniqueId.UNIQUE_RECTANGLE_2]: 'Unique Rectangle Type 2',
+  [TechniqueId.BUG_PLUS_1]: 'BUG+1',
+  [TechniqueId.SUE_DE_COQ]: 'Sue de Coq',
+  [TechniqueId.ALS_XZ]: 'ALS-XZ',
+  [TechniqueId.X_CYCLES]: 'X-Cycles',
+  [TechniqueId.FORCING_CHAINS]: 'Forcing Chains',
+  [TechniqueId.MEDUSA_COLORING]: '3D Medusa',
+  [TechniqueId.CRANE]: 'Crane',
+  [TechniqueId.UNIQUE_RECTANGLE_3]: 'Unique Rectangle Type 3',
+  [TechniqueId.UNIQUE_RECTANGLE_4]: 'Unique Rectangle Type 4',
+  [TechniqueId.UNIQUE_RECTANGLE_5]: 'Unique Rectangle Type 5',
+  [TechniqueId.X_CHAIN]: 'X-Chain',
+  [TechniqueId.XY_CHAIN]: 'XY-Chain',
+  [TechniqueId.VWXYZ_WING]: 'VWXYZ-Wing',
+  [TechniqueId.UVWXYZ_WING]: 'UVWXYZ-Wing',
+  [TechniqueId.TUVWXYZ_WING]: 'TUVWXYZ-Wing',
+  [TechniqueId.STUVWXYZ_WING]: 'STUVWXYZ-Wing',
+  [TechniqueId.AIC]: 'AIC',
+  [TechniqueId.FORCING_NET]: 'Forcing Net',
+  [TechniqueId.AVOIDABLE_RECTANGLE]: 'Avoidable Rectangle',
+  [TechniqueId.SASHIMI_X_WING]: 'Sashimi X-Wing',
+  [TechniqueId.SASHIMI_SWORDFISH]: 'Sashimi Swordfish',
+  [TechniqueId.SASHIMI_JELLYFISH]: 'Sashimi Jellyfish',
+  [TechniqueId.HIDDEN_UNIQUE_RECTANGLE]: 'Hidden Unique Rectangle',
+  [TechniqueId.FIREWORK]: 'Firework',
+  [TechniqueId.DEATH_BLOSSOM]: 'Death Blossom',
+  [TechniqueId.FRANKEN_X_WING]: 'Franken X-Wing',
+  [TechniqueId.FRANKEN_SWORDFISH]: 'Franken Swordfish',
+  [TechniqueId.FRANKEN_JELLYFISH]: 'Franken Jellyfish',
+  [TechniqueId.GROUPED_X_CYCLES]: 'Grouped X-Cycles',
+};
 
 /**
  * Get the technique title/name from its ID.
- * Inverse of TECHNIQUE_TITLE_TO_ID lookup.
  *
  * @param techniqueId - The technique ID number
  * @returns The technique title, or "Technique {id}" if unknown
@@ -1759,120 +1758,25 @@ export interface GenerateOptions {
 // =============================================================================
 
 /**
- * Convert technique title to icon filename/URL path.
+ * Get technique icon URL from technique ID.
  *
- * @param title - Technique title (e.g., "Full House", "X-Wing")
+ * @param techniqueId - Technique ID number
  * @returns Icon URL path (e.g., "/technique.full.house.svg")
  *
  * @example
  * ```typescript
- * getTechniqueIconUrl("Full House"); // "/technique.full.house.svg"
- * getTechniqueIconUrl("X-Wing");     // "/technique.x.wing.svg"
- * getTechniqueIconUrl("XY-Wing");    // "/technique.xy.wing.svg"
+ * getTechniqueIconUrl(TechniqueId.FULL_HOUSE); // "/technique.full.house.svg"
+ * getTechniqueIconUrl(TechniqueId.X_WING);     // "/technique.x.wing.svg"
+ * getTechniqueIconUrl(TechniqueId.XY_WING);    // "/technique.xy.wing.svg"
  * ```
  */
-export function getTechniqueIconUrl(title: string): string {
+export function getTechniqueIconUrl(techniqueId: number): string {
+  const title = getTechniqueNameById(techniqueId);
   const normalized = title
     .toLowerCase()
     .replace(/\s+/g, '.') // spaces to dots
     .replace(/-/g, '.');  // hyphens to dots
   return `/technique.${normalized}.svg`;
-}
-
-/** Map technique titles to HTML help file paths */
-export const TECHNIQUE_TO_HELP_FILE: Record<string, string> = {
-  'Full House': 'Full_House.html',
-  'Naked Single': 'Naked_Single.html',
-  'Hidden Single': 'Hidden_Single.html',
-  'Naked Pair': 'Naked_Pair.html',
-  'Hidden Pair': 'Hidden_Pair.html',
-  'Locked Candidates': 'Locked_Candidates.html',
-  'Naked Triple': 'Naked_Triple.html',
-  'Hidden Triple': 'Hidden_Triple.html',
-  'Naked Quad': 'Naked_Quad.html',
-  'Hidden Quad': 'Hidden_Quad.html',
-  'X-Wing': 'X-Wing.html',
-  'Swordfish': 'Swordfish.html',
-  'Jellyfish': 'Jellyfish.html',
-  'XY-Wing': 'XY-Wing.html',
-  'Finned X-Wing': 'Finned_X-Wing.html',
-  'Squirmbag': 'Squirmbag.html',
-  'Finned Swordfish': 'Finned_Swordfish.html',
-  'Finned Jellyfish': 'Finned_Jellyfish.html',
-  'XYZ-Wing': 'XYZ-Wing.html',
-  'WXYZ-Wing': 'WXYZ-Wing.html',
-  'Almost Locked Sets': 'Almost_Locked_Sets.html',
-  'Finned Squirmbag': 'Finned_Squirmbag.html',
-  'ALS Chain': 'ALS-Chain.html',
-  'ALS-Chain': 'ALS-Chain.html',
-  'Skyscraper': 'Skyscraper.html',
-  'Two-String Kite': 'Two-String_Kite.html',
-  'Empty Rectangle': 'Empty_Rectangle.html',
-  'Simple Coloring': 'Simple_Coloring.html',
-  'W-Wing': 'W-Wing.html',
-  'Remote Pairs': 'Remote_Pairs.html',
-  'Unique Rectangle Type 1': 'Unique_Rectangle_Type_1.html',
-  'Unique Rectangle Type 2': 'Unique_Rectangle_Type_2.html',
-  'Unique Rectangle Type 3': 'Unique_Rectangle_Type_3.html',
-  'Unique Rectangle Type 4': 'Unique_Rectangle_Type_4.html',
-  'Unique Rectangle Type 5': 'Unique_Rectangle_Type_5.html',
-  'BUG+1': 'BUG_Plus_1.html',
-  'Sue de Coq': 'Sue_de_Coq.html',
-  'ALS-XZ': 'ALS-XZ.html',
-  'X-Cycles': 'X-Cycles.html',
-  'Forcing Chains': 'Forcing_Chains.html',
-  '3D Medusa': '3D_Medusa.html',
-  'Crane': 'Crane.html',
-  'X-Chain': 'X-Chain.html',
-  'XY-Chain': 'XY-Chain.html',
-  'VWXYZ-Wing': 'VWXYZ-Wing.html',
-  'UVWXYZ-Wing': 'UVWXYZ-Wing.html',
-  'TUVWXYZ-Wing': 'TUVWXYZ-Wing.html',
-  'STUVWXYZ-Wing': 'STUVWXYZ-Wing.html',
-  'AIC': 'AIC.html',
-  'Forcing Net': 'Forcing_Net.html',
-  'Avoidable Rectangle': 'Avoidable_Rectangle.html',
-  'Sashimi X-Wing': 'Sashimi_X-Wing.html',
-  'Sashimi Swordfish': 'Sashimi_Swordfish.html',
-  'Sashimi Jellyfish': 'Sashimi_Jellyfish.html',
-  'Hidden Unique Rectangle': 'Hidden_Unique_Rectangle.html',
-  'Firework': 'Firework.html',
-  'Death Blossom': 'Death_Blossom.html',
-  'Franken X-Wing': 'Franken_X-Wing.html',
-  'Franken Swordfish': 'Franken_Swordfish.html',
-  'Franken Jellyfish': 'Franken_Jellyfish.html',
-  'Grouped X-Cycles': 'Grouped_X-Cycles.html',
-};
-
-/** Reverse mapping: HTML file name (lowercase) -> technique title */
-export const HELP_FILE_TO_TECHNIQUE: Record<string, string> = Object.fromEntries(
-  Object.entries(TECHNIQUE_TO_HELP_FILE).map(([title, file]) => [file.toLowerCase(), title])
-);
-
-/**
- * Get help file URL for a technique.
- *
- * @param techniqueTitle - Technique title
- * @returns Help file URL path (e.g., "/help/Full_House.html")
- */
-export function getHelpFileUrl(techniqueTitle: string): string {
-  const fileName = TECHNIQUE_TO_HELP_FILE[techniqueTitle];
-  if (fileName) {
-    return `/help/${fileName}`;
-  }
-  // Generate filename from title (spaces to underscores, preserve hyphens)
-  const generatedFileName = `${techniqueTitle.replace(/\s+/g, '_')}.html`;
-  return `/help/${generatedFileName}`;
-}
-
-/**
- * Get technique title from help file name.
- *
- * @param fileName - Help file name (e.g., "Full_House.html")
- * @returns Technique title or undefined if not found
- */
-export function getTechniqueFromHelpFile(fileName: string): string | undefined {
-  return HELP_FILE_TO_TECHNIQUE[fileName.toLowerCase()];
 }
 
 // =============================================================================
