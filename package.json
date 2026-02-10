@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/sudojo_types",
-  "version": "1.2.29",
+  "version": "1.2.31",
   "description": "TypeScript types for Sudojo API - Sudoku learning platform",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
