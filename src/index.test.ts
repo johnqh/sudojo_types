@@ -113,8 +113,7 @@ describe('errorResponse', () => {
 describe('Entity Types', () => {
   it('Level type should have correct shape', () => {
     const level: Level = {
-      uuid: '123',
-      index: 1,
+      level: 1,
       title: 'Beginner',
       text: 'Introduction to Sudoku',
       requires_subscription: false,
@@ -122,8 +121,7 @@ describe('Entity Types', () => {
       updated_at: null,
     };
 
-    expectTypeOf(level.uuid).toBeString();
-    expectTypeOf(level.index).toBeNumber();
+    expectTypeOf(level.level).toBeNumber();
     expectTypeOf(level.title).toBeString();
     expectTypeOf(level.text).toEqualTypeOf<string | null>();
     expectTypeOf(level.requires_subscription).toEqualTypeOf<boolean | null>();
@@ -133,25 +131,27 @@ describe('Entity Types', () => {
 
   it('Technique type should have correct shape', () => {
     const technique: Technique = {
-      uuid: '456',
-      level_uuid: '123',
-      index: 1,
+      technique: 1,
+      level: 1,
       title: 'Naked Singles',
+      path: 'naked-singles',
+      dependencies: null,
       text: null,
       created_at: null,
       updated_at: null,
     };
 
-    expectTypeOf(technique.uuid).toBeString();
-    expectTypeOf(technique.level_uuid).toEqualTypeOf<string | null>();
-    expectTypeOf(technique.index).toBeNumber();
+    expectTypeOf(technique.technique).toBeNumber();
+    expectTypeOf(technique.level).toEqualTypeOf<number | null>();
     expectTypeOf(technique.title).toBeString();
+    expectTypeOf(technique.path).toEqualTypeOf<string | null>();
+    expectTypeOf(technique.dependencies).toEqualTypeOf<string | null>();
   });
 
   it('Learning type should have correct shape', () => {
     const learning: Learning = {
       uuid: '789',
-      technique_uuid: '456',
+      technique: 1,
       index: 0,
       language_code: 'en',
       text: 'Learn this technique',
@@ -160,6 +160,7 @@ describe('Entity Types', () => {
       updated_at: null,
     };
 
+    expectTypeOf(learning.technique).toEqualTypeOf<number | null>();
     expectTypeOf(learning.language_code).toBeString();
     expectTypeOf(learning.image_url).toEqualTypeOf<string | null>();
   });
@@ -167,7 +168,7 @@ describe('Entity Types', () => {
   it('Board type should have correct shape', () => {
     const board: Board = {
       uuid: 'board-1',
-      level_uuid: '123',
+      level: 1,
       symmetrical: true,
       board:
         '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
@@ -180,6 +181,7 @@ describe('Entity Types', () => {
 
     expectTypeOf(board.board).toBeString();
     expectTypeOf(board.solution).toBeString();
+    expectTypeOf(board.level).toEqualTypeOf<number | null>();
     expectTypeOf(board.symmetrical).toEqualTypeOf<boolean | null>();
     expectTypeOf(board.techniques).toEqualTypeOf<number | null>();
   });
@@ -189,7 +191,7 @@ describe('Entity Types', () => {
       uuid: 'daily-1',
       date: '2024-01-15',
       board_uuid: 'board-1',
-      level_uuid: '123',
+      level: 1,
       techniques: 2,
       board:
         '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
@@ -201,13 +203,14 @@ describe('Entity Types', () => {
 
     expectTypeOf(daily.date).toBeString();
     expectTypeOf(daily.board_uuid).toEqualTypeOf<string | null>();
+    expectTypeOf(daily.level).toEqualTypeOf<number | null>();
   });
 
   it('Challenge type should have correct shape', () => {
     const challenge: Challenge = {
       uuid: 'challenge-1',
       board_uuid: null,
-      level_uuid: '123',
+      level: 1,
       difficulty: 5,
       board:
         '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
@@ -217,6 +220,7 @@ describe('Entity Types', () => {
       updated_at: null,
     };
 
+    expectTypeOf(challenge.level).toEqualTypeOf<number | null>();
     expectTypeOf(challenge.difficulty).toEqualTypeOf<number | null>();
   });
 });

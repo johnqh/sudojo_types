@@ -72,6 +72,17 @@ Types in `src/index.ts` are organized into sections:
 4. Query Parameter Types
 5. Response Helper Types
 
+### BigInt Technique Bitfields
+
+The `techniques` field on `Board` and `Daily` entities is a bitmask where each bit corresponds to a `TechniqueId` enum value. With 60 techniques, values can exceed `Number.MAX_SAFE_INTEGER`. The utility functions `techniqueToBit()`, `hasTechnique()`, and `addTechnique()` use `BigInt` internally to handle IDs >= 32 safely:
+
+```typescript
+import { techniqueToBit, hasTechnique, addTechnique } from '@sudobility/sudojo_types';
+
+const bit = techniqueToBit(42);          // Uses BigInt internally
+const has = hasTechnique(bitfield, 42);  // Safe for IDs >= 32
+```
+
 ### Code Style
 
 - Single quotes, semicolons, trailing commas (es5)
