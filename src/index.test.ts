@@ -15,6 +15,7 @@ import {
   TOTAL_CELLS,
   parseBoardString,
   stringifyBoard,
+  isValidBoardString,
   // Scramble utilities
   scrambleBoard,
   noScramble,
@@ -26,7 +27,26 @@ import {
   hasInvalidPencilmarksStep,
   hasPencilmarkContent,
   getTechniqueNameById,
+  getTechniqueIconUrl,
   TechniqueId,
+  // Bitfield utilities
+  techniqueToBit,
+  hasTechnique,
+  addTechnique,
+  // UUID utilities
+  isValidUUID,
+  validateUUID,
+  // Cell notation utilities
+  cellName,
+  cellList,
+  getBlockIndex,
+  getBlockNumber,
+  indexToRowCol,
+  rowColToIndex,
+  // Time formatting utilities
+  formatTime,
+  parseTime,
+  formatDigits,
   type ScrambleConfig,
   type ScrambleResult,
   type Belt,
@@ -36,6 +56,7 @@ import {
   type Board,
   type Daily,
   type Challenge,
+  type ISODateString,
   type LevelCreateRequest,
   type LevelUpdateRequest,
   type TechniqueCreateRequest,
@@ -55,6 +76,10 @@ import {
   type HealthCheckData,
   type BaseResponse,
   type Optional,
+  type GameSession,
+  type GameStartRequest,
+  type GameFinishResponse,
+  type PointTransaction,
 } from './index';
 
 // =============================================================================
@@ -124,7 +149,9 @@ describe('Entity Types', () => {
     expectTypeOf(level.level).toBeNumber();
     expectTypeOf(level.title).toBeString();
     expectTypeOf(level.text).toEqualTypeOf<string | null>();
-    expectTypeOf(level.requires_subscription).toEqualTypeOf<boolean | null>();
+    expectTypeOf(level.requires_subscription).toEqualTypeOf<
+      boolean | null
+    >();
     expectTypeOf(level.created_at).toEqualTypeOf<Date | null>();
     expectTypeOf(level.updated_at).toEqualTypeOf<Date | null>();
   });
@@ -145,7 +172,9 @@ describe('Entity Types', () => {
     expectTypeOf(technique.level).toEqualTypeOf<number | null>();
     expectTypeOf(technique.title).toBeString();
     expectTypeOf(technique.path).toEqualTypeOf<string | null>();
-    expectTypeOf(technique.dependencies).toEqualTypeOf<string | null>();
+    expectTypeOf(technique.dependencies).toEqualTypeOf<
+      string | null
+    >();
   });
 
   it('Learning type should have correct shape', () => {
@@ -162,7 +191,9 @@ describe('Entity Types', () => {
 
     expectTypeOf(learning.technique).toEqualTypeOf<number | null>();
     expectTypeOf(learning.language_code).toBeString();
-    expectTypeOf(learning.image_url).toEqualTypeOf<string | null>();
+    expectTypeOf(learning.image_url).toEqualTypeOf<
+      string | null
+    >();
   });
 
   it('Board type should have correct shape', () => {
@@ -182,7 +213,9 @@ describe('Entity Types', () => {
     expectTypeOf(board.board).toBeString();
     expectTypeOf(board.solution).toBeString();
     expectTypeOf(board.level).toEqualTypeOf<number | null>();
-    expectTypeOf(board.symmetrical).toEqualTypeOf<boolean | null>();
+    expectTypeOf(board.symmetrical).toEqualTypeOf<
+      boolean | null
+    >();
     expectTypeOf(board.techniques).toEqualTypeOf<number | null>();
   });
 
@@ -202,7 +235,9 @@ describe('Entity Types', () => {
     };
 
     expectTypeOf(daily.date).toBeString();
-    expectTypeOf(daily.board_uuid).toEqualTypeOf<string | null>();
+    expectTypeOf(daily.board_uuid).toEqualTypeOf<
+      string | null
+    >();
     expectTypeOf(daily.level).toEqualTypeOf<number | null>();
   });
 
@@ -221,7 +256,87 @@ describe('Entity Types', () => {
     };
 
     expectTypeOf(challenge.level).toEqualTypeOf<number | null>();
-    expectTypeOf(challenge.difficulty).toEqualTypeOf<number | null>();
+    expectTypeOf(challenge.difficulty).toEqualTypeOf<
+      number | null
+    >();
+  });
+
+  it('ISODateString should be a string alias', () => {
+    const date: ISODateString = '2024-01-15';
+    expectTypeOf(date).toBeString();
+  });
+
+  it('GameSession type should have correct shape', () => {
+    const session: GameSession = {
+      sessionId: 'sess-1',
+      board: '0'.repeat(81),
+      level: 1,
+      puzzleType: 'daily',
+      puzzleId: null,
+      hintUsed: false,
+      hintsCount: 0,
+      startedAt: '2024-01-15T00:00:00Z',
+    };
+
+    expectTypeOf(session.sessionId).toBeString();
+    expectTypeOf(session.puzzleType).toEqualTypeOf<
+      'daily' | 'level'
+    >();
+    expectTypeOf(session.puzzleId).toEqualTypeOf<
+      string | null
+    >();
+    expectTypeOf(session.hintUsed).toBeBoolean();
+    expectTypeOf(session.hintsCount).toBeNumber();
+  });
+
+  it('GameStartRequest type should have correct shape', () => {
+    const request: GameStartRequest = {
+      board: '0'.repeat(81),
+      solution: '1'.repeat(81),
+      level: 1,
+      techniques: 3,
+      puzzleType: 'level',
+    };
+
+    expectTypeOf(request.board).toBeString();
+    expectTypeOf(request.level).toBeNumber();
+    expectTypeOf(request.techniques).toBeNumber();
+    expectTypeOf(request.puzzleType).toEqualTypeOf<
+      'daily' | 'level'
+    >();
+  });
+
+  it('GameFinishResponse type should have correct shape', () => {
+    const response: GameFinishResponse = {
+      points: {
+        basePoints: 4,
+        noHintMultiplier: 10,
+        noInterruptionMultiplier: 2,
+        totalPoints: 80,
+      },
+    };
+
+    expectTypeOf(response.points.basePoints).toBeNumber();
+    expectTypeOf(response.points.totalPoints).toBeNumber();
+  });
+
+  it('PointTransaction type should have correct shape', () => {
+    const tx: PointTransaction = {
+      id: 'tx-1',
+      userId: 'user-1',
+      points: 100,
+      transactionType: 'puzzle_complete',
+      metadata: null,
+      createdAt: null,
+    };
+
+    expectTypeOf(tx.id).toBeString();
+    expectTypeOf(tx.points).toBeNumber();
+    expectTypeOf(tx.transactionType).toBeString();
+    expectTypeOf(tx.metadata).toEqualTypeOf<
+      Record<string, unknown> | null
+    >();
+    expectTypeOf(tx.createdAt).toEqualTypeOf<string | null>();
   });
 });
 
@@ -232,13 +347,13 @@ describe('Entity Types', () => {
 describe('Request Types use Optional<T>', () => {
   it('LevelCreateRequest should use Optional for optional fields', () => {
     const request: LevelCreateRequest = {
-      index: 1,
+      level: 1,
       title: 'Test',
       text: undefined,
       requires_subscription: undefined,
     };
 
-    expectTypeOf(request.index).toBeNumber();
+    expectTypeOf(request.level).toBeNumber();
     expectTypeOf(request.title).toBeString();
     expectTypeOf(request.text).toEqualTypeOf<Optional<string>>();
     expectTypeOf(request.requires_subscription).toEqualTypeOf<
@@ -248,89 +363,99 @@ describe('Request Types use Optional<T>', () => {
 
   it('LevelUpdateRequest should use Optional for all fields', () => {
     const request: LevelUpdateRequest = {
-      index: undefined,
       title: undefined,
       text: undefined,
       requires_subscription: undefined,
     };
 
-    expectTypeOf(request.index).toEqualTypeOf<Optional<number>>();
     expectTypeOf(request.title).toEqualTypeOf<Optional<string>>();
   });
 
   it('TechniqueCreateRequest should use Optional for optional fields', () => {
     const request: TechniqueCreateRequest = {
-      level_uuid: '123',
-      index: 1,
+      technique: 1,
+      level: 1,
       title: 'Test',
       text: undefined,
     };
 
-    expectTypeOf(request.level_uuid).toBeString();
+    expectTypeOf(request.technique).toBeNumber();
+    expectTypeOf(request.level).toBeNumber();
     expectTypeOf(request.text).toEqualTypeOf<Optional<string>>();
   });
 
   it('TechniqueUpdateRequest should use Optional for all fields', () => {
     const request: TechniqueUpdateRequest = {
-      level_uuid: undefined,
-      index: undefined,
+      level: undefined,
       title: undefined,
       text: undefined,
     };
 
-    expectTypeOf(request.level_uuid).toEqualTypeOf<Optional<string>>();
-    expectTypeOf(request.index).toEqualTypeOf<Optional<number>>();
+    expectTypeOf(request.level).toEqualTypeOf<Optional<number>>();
+    expectTypeOf(request.title).toEqualTypeOf<Optional<string>>();
   });
 
   it('LearningCreateRequest should handle Optional with null union', () => {
     const request: LearningCreateRequest = {
-      technique_uuid: '123',
+      technique: 1,
       index: 1,
       language_code: undefined,
       text: undefined,
       image_url: null, // Can be null or undefined
     };
 
-    expectTypeOf(request.image_url).toEqualTypeOf<Optional<string | null>>();
+    expectTypeOf(request.image_url).toEqualTypeOf<
+      Optional<string | null>
+    >();
   });
 
   it('BoardCreateRequest should handle Optional with null union', () => {
     const request: BoardCreateRequest = {
-      level_uuid: null,
+      level: null,
       symmetrical: undefined,
       board: '...',
       solution: '...',
       techniques: undefined,
     };
 
-    expectTypeOf(request.level_uuid).toEqualTypeOf<Optional<string | null>>();
-    expectTypeOf(request.symmetrical).toEqualTypeOf<Optional<boolean>>();
+    expectTypeOf(request.level).toEqualTypeOf<
+      Optional<number | null>
+    >();
+    expectTypeOf(request.symmetrical).toEqualTypeOf<
+      Optional<boolean>
+    >();
   });
 
   it('DailyCreateRequest should use Optional correctly', () => {
     const request: DailyCreateRequest = {
       date: '2024-01-15',
       board_uuid: undefined,
-      level_uuid: null,
+      level: null,
       techniques: undefined,
       board: '...',
       solution: '...',
     };
 
-    expectTypeOf(request.board_uuid).toEqualTypeOf<Optional<string | null>>();
-    expectTypeOf(request.techniques).toEqualTypeOf<Optional<number>>();
+    expectTypeOf(request.board_uuid).toEqualTypeOf<
+      Optional<string | null>
+    >();
+    expectTypeOf(request.techniques).toEqualTypeOf<
+      Optional<number>
+    >();
   });
 
   it('ChallengeCreateRequest should use Optional correctly', () => {
     const request: ChallengeCreateRequest = {
       board_uuid: undefined,
-      level_uuid: undefined,
+      level: undefined,
       difficulty: 5,
       board: '...',
       solution: '...',
     };
 
-    expectTypeOf(request.difficulty).toEqualTypeOf<Optional<number>>();
+    expectTypeOf(request.difficulty).toEqualTypeOf<
+      Optional<number>
+    >();
   });
 });
 
@@ -341,38 +466,44 @@ describe('Request Types use Optional<T>', () => {
 describe('Query Parameter Types', () => {
   it('TechniqueQueryParams should use Optional', () => {
     const params: TechniqueQueryParams = {
-      level_uuid: undefined,
+      level: undefined,
     };
 
-    expectTypeOf(params.level_uuid).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(params.level).toEqualTypeOf<Optional<number>>();
   });
 
   it('LearningQueryParams should use Optional', () => {
     const params: LearningQueryParams = {
-      technique_uuid: '123',
+      technique: 1,
       language_code: undefined,
     };
 
-    expectTypeOf(params.technique_uuid).toEqualTypeOf<Optional<string>>();
-    expectTypeOf(params.language_code).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(params.technique).toEqualTypeOf<
+      Optional<number>
+    >();
+    expectTypeOf(params.language_code).toEqualTypeOf<
+      Optional<string>
+    >();
   });
 
   it('BoardQueryParams should use Optional', () => {
     const params: BoardQueryParams = {
-      level_uuid: undefined,
+      level: undefined,
     };
 
-    expectTypeOf(params.level_uuid).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(params.level).toEqualTypeOf<Optional<number>>();
   });
 
   it('ChallengeQueryParams should use Optional', () => {
     const params: ChallengeQueryParams = {
-      level_uuid: undefined,
+      level: undefined,
       difficulty: 'hard',
     };
 
-    expectTypeOf(params.level_uuid).toEqualTypeOf<Optional<string>>();
-    expectTypeOf(params.difficulty).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(params.level).toEqualTypeOf<Optional<number>>();
+    expectTypeOf(params.difficulty).toEqualTypeOf<
+      Optional<string>
+    >();
   });
 });
 
@@ -384,7 +515,9 @@ describe('Response Types', () => {
   it('successResponse should return BaseResponse<T>', () => {
     const response = successResponse({ id: 1 });
 
-    expectTypeOf(response).toEqualTypeOf<BaseResponse<{ id: number }>>();
+    expectTypeOf(response).toEqualTypeOf<
+      BaseResponse<{ id: number }>
+    >();
   });
 
   it('errorResponse should return BaseResponse<never>', () => {
@@ -450,9 +583,18 @@ describe('Belt System', () => {
 
   describe('getBeltForLevel', () => {
     it('should return correct belt for valid levels 1-12', () => {
-      expect(getBeltForLevel(1)).toEqual({ name: 'White', hex: '#FFFFFF' });
-      expect(getBeltForLevel(5)).toEqual({ name: 'Orange', hex: '#FF9800' });
-      expect(getBeltForLevel(12)).toEqual({ name: 'Black', hex: '#212121' });
+      expect(getBeltForLevel(1)).toEqual({
+        name: 'White',
+        hex: '#FFFFFF',
+      });
+      expect(getBeltForLevel(5)).toEqual({
+        name: 'Orange',
+        hex: '#FF9800',
+      });
+      expect(getBeltForLevel(12)).toEqual({
+        name: 'Black',
+        hex: '#212121',
+      });
     });
 
     it('should return striped belts with stripeHex', () => {
@@ -498,7 +640,9 @@ describe('Belt System', () => {
         stripeHex: '#FFEB3B',
       };
 
-      expectTypeOf(stripedBelt.stripeHex).toEqualTypeOf<string | undefined>();
+      expectTypeOf(stripedBelt.stripeHex).toEqualTypeOf<
+        string | undefined
+      >();
     });
   });
 
@@ -526,7 +670,9 @@ describe('Belt System', () => {
       expect(svg).toContain('<svg');
       expect(svg).toContain('</svg>');
       expect(svg).toContain('fill="#FF0000"');
-      expect(svg).toContain('viewBox="0 0 478.619 184.676"');
+      expect(svg).toContain(
+        'viewBox="0 0 478.619 184.676"'
+      );
     });
 
     it('should use default size of 100x40', () => {
@@ -556,7 +702,12 @@ describe('Belt System', () => {
     });
 
     it('should allow custom stroke color override', () => {
-      const svg = getBeltIconSvg('#2196F3', 100, 40, '#FF0000');
+      const svg = getBeltIconSvg(
+        '#2196F3',
+        100,
+        40,
+        '#FF0000'
+      );
 
       expect(svg).toContain('stroke="#FF0000"');
     });
@@ -663,6 +814,39 @@ describe('Board Utilities', () => {
 
       expect(board[0][0]).toBe(0);
     });
+
+    it('should parse all-zeros board', () => {
+      const board = parseBoardString('0'.repeat(81));
+
+      board.forEach((row) => {
+        row.forEach((cell) => {
+          expect(cell).toBe(0);
+        });
+      });
+    });
+
+    it('should parse all-nines board', () => {
+      const board = parseBoardString('9'.repeat(81));
+
+      board.forEach((row) => {
+        row.forEach((cell) => {
+          expect(cell).toBe(9);
+        });
+      });
+    });
+
+    it('should parse board with dots mixed with digits', () => {
+      const mixed =
+        '53.07.000600195000098000060800060003400803001700020006060000280000419005000080079';
+      const board = parseBoardString(mixed);
+
+      expect(board[0][0]).toBe(5);
+      expect(board[0][1]).toBe(3);
+      expect(board[0][2]).toBe(0); // dot -> 0
+      expect(board[0][3]).toBe(0); // '0'
+      expect(board[0][4]).toBe(7);
+      expect(board[0][5]).toBe(0); // dot -> 0
+    });
   });
 
   describe('stringifyBoard', () => {
@@ -675,7 +859,82 @@ describe('Board Utilities', () => {
 
     it('should throw error for invalid board size', () => {
       const invalidBoard = [[1, 2, 3]];
-      expect(() => stringifyBoard(invalidBoard)).toThrow('Invalid board rows');
+      expect(() => stringifyBoard(invalidBoard)).toThrow(
+        'Invalid board rows'
+      );
+    });
+
+    it('should roundtrip all-zeros board', () => {
+      const zeros = '0'.repeat(81);
+      const board = parseBoardString(zeros);
+      expect(stringifyBoard(board)).toBe(zeros);
+    });
+
+    it('should roundtrip all-nines board', () => {
+      const nines = '9'.repeat(81);
+      const board = parseBoardString(nines);
+      expect(stringifyBoard(board)).toBe(nines);
+    });
+
+    it('should roundtrip dots-mixed board (dots become zeros)', () => {
+      const mixed =
+        '53.07.000600195000098000060800060003400803001700020006060000280000419005000080079';
+      const expected =
+        '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+      const board = parseBoardString(mixed);
+      expect(stringifyBoard(board)).toBe(expected);
+    });
+  });
+
+  describe('isValidBoardString', () => {
+    it('should return true for valid 81-digit string', () => {
+      expect(isValidBoardString(validPuzzle)).toBe(true);
+    });
+
+    it('should return true for all-zeros', () => {
+      expect(isValidBoardString('0'.repeat(81))).toBe(true);
+    });
+
+    it('should return true for all-nines', () => {
+      expect(isValidBoardString('9'.repeat(81))).toBe(true);
+    });
+
+    it('should return true for all-dots', () => {
+      expect(isValidBoardString('.'.repeat(81))).toBe(true);
+    });
+
+    it('should return true for mixed dots and digits', () => {
+      const mixed =
+        '53.07.000600195000098000060800060003400803001700020006060000280000419005000080079';
+      expect(isValidBoardString(mixed)).toBe(true);
+    });
+
+    it('should return false for empty string', () => {
+      expect(isValidBoardString('')).toBe(false);
+    });
+
+    it('should return false for too-short string', () => {
+      expect(isValidBoardString('12345')).toBe(false);
+    });
+
+    it('should return false for too-long string', () => {
+      expect(isValidBoardString('0'.repeat(82))).toBe(false);
+    });
+
+    it('should return false for invalid characters', () => {
+      expect(isValidBoardString('x'.repeat(81))).toBe(false);
+    });
+
+    it('should return false for string with spaces', () => {
+      expect(
+        isValidBoardString(' '.repeat(80) + '1')
+      ).toBe(false);
+    });
+
+    it('should return false for 81 chars with one invalid char', () => {
+      expect(
+        isValidBoardString('0'.repeat(40) + 'x' + '0'.repeat(40))
+      ).toBe(false);
     });
   });
 });
@@ -693,10 +952,18 @@ describe('Scramble Utilities', () => {
   describe('DEFAULT_SCRAMBLE_CONFIG', () => {
     it('should have all options enabled by default', () => {
       expect(DEFAULT_SCRAMBLE_CONFIG.scrambleRows).toBe(true);
-      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleColumns).toBe(true);
-      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleRowBlocks).toBe(true);
-      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleColumnBlocks).toBe(true);
-      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleDigits).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleColumns).toBe(
+        true
+      );
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleRowBlocks).toBe(
+        true
+      );
+      expect(
+        DEFAULT_SCRAMBLE_CONFIG.scrambleColumnBlocks
+      ).toBe(true);
+      expect(DEFAULT_SCRAMBLE_CONFIG.scrambleDigits).toBe(
+        true
+      );
       expect(DEFAULT_SCRAMBLE_CONFIG.rotate).toBe(true);
       expect(DEFAULT_SCRAMBLE_CONFIG.mirror).toBe(true);
     });
@@ -704,14 +971,20 @@ describe('Scramble Utilities', () => {
 
   describe('scrambleBoard', () => {
     it('should return scrambled puzzle and solution', () => {
-      const result = scrambleBoard(validPuzzle, validSolution);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution
+      );
 
       expect(result.puzzle).toHaveLength(81);
       expect(result.solution).toHaveLength(81);
     });
 
     it('should return valid digit mapping', () => {
-      const result = scrambleBoard(validPuzzle, validSolution);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution
+      );
 
       expect(result.digitMapping.size).toBe(9);
       expect(result.reverseDigitMapping.size).toBe(9);
@@ -723,7 +996,10 @@ describe('Scramble Utilities', () => {
     });
 
     it('should preserve the number of clues', () => {
-      const result = scrambleBoard(validPuzzle, validSolution);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution
+      );
 
       const originalClues = validPuzzle
         .split('')
@@ -736,7 +1012,10 @@ describe('Scramble Utilities', () => {
     });
 
     it('should maintain puzzle/solution correspondence', () => {
-      const result = scrambleBoard(validPuzzle, validSolution);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution
+      );
 
       // Each non-zero cell in puzzle should match solution
       for (let i = 0; i < 81; i++) {
@@ -749,7 +1028,10 @@ describe('Scramble Utilities', () => {
     });
 
     it('should produce valid Sudoku solution', () => {
-      const result = scrambleBoard(validPuzzle, validSolution);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution
+      );
       const board = parseBoardString(result.solution);
 
       // Check all rows contain 1-9
@@ -776,7 +1058,9 @@ describe('Scramble Utilities', () => {
           const blockSet = new Set<number>();
           for (let r = 0; r < 3; r++) {
             for (let c = 0; c < 3; c++) {
-              blockSet.add(board[blockRow * 3 + r][blockCol * 3 + c]);
+              blockSet.add(
+                board[blockRow * 3 + r][blockCol * 3 + c]
+              );
             }
           }
           expect(blockSet.size).toBe(9);
@@ -795,7 +1079,11 @@ describe('Scramble Utilities', () => {
         mirror: false,
       };
 
-      const result = scrambleBoard(validPuzzle, validSolution, config);
+      const result = scrambleBoard(
+        validPuzzle,
+        validSolution,
+        config
+      );
 
       // With all scrambling disabled, output should match input
       expect(result.puzzle).toBe(validPuzzle);
@@ -806,7 +1094,10 @@ describe('Scramble Utilities', () => {
       // Run multiple times to statistically verify randomness
       let differentCount = 0;
       for (let i = 0; i < 10; i++) {
-        const result = scrambleBoard(validPuzzle, validSolution);
+        const result = scrambleBoard(
+          validPuzzle,
+          validSolution
+        );
         if (result.puzzle !== validPuzzle) {
           differentCount++;
         }
@@ -863,10 +1154,12 @@ describe('Scramble Utilities', () => {
 
       expectTypeOf(result.puzzle).toBeString();
       expectTypeOf(result.solution).toBeString();
-      expectTypeOf(result.digitMapping).toEqualTypeOf<Map<number, number>>();
-      expectTypeOf(result.reverseDigitMapping).toEqualTypeOf<
+      expectTypeOf(result.digitMapping).toEqualTypeOf<
         Map<number, number>
       >();
+      expectTypeOf(
+        result.reverseDigitMapping
+      ).toEqualTypeOf<Map<number, number>>();
     });
   });
 });
@@ -884,11 +1177,15 @@ describe('Solver Utilities', () => {
 
   describe('isBoardFilled', () => {
     it('should return false for empty board', () => {
-      expect(isBoardFilled(emptyUser, emptyUser)).toBe(false);
+      expect(isBoardFilled(emptyUser, emptyUser)).toBe(
+        false
+      );
     });
 
     it('should return false for partial puzzle with no user input', () => {
-      expect(isBoardFilled(validPuzzle, emptyUser)).toBe(false);
+      expect(isBoardFilled(validPuzzle, emptyUser)).toBe(
+        false
+      );
     });
 
     it('should return true when puzzle + user fills all cells', () => {
@@ -901,26 +1198,40 @@ describe('Solver Utilities', () => {
           userInput += '0';
         }
       }
-      expect(isBoardFilled(validPuzzle, userInput)).toBe(true);
+      expect(isBoardFilled(validPuzzle, userInput)).toBe(
+        true
+      );
     });
 
     it('should return true for fully filled solution', () => {
-      expect(isBoardFilled(validSolution, emptyUser)).toBe(true);
+      expect(isBoardFilled(validSolution, emptyUser)).toBe(
+        true
+      );
     });
 
     it('should handle user input overriding original', () => {
       // User fills in everything
-      expect(isBoardFilled(validPuzzle, validSolution)).toBe(true);
+      expect(
+        isBoardFilled(validPuzzle, validSolution)
+      ).toBe(true);
     });
   });
 
   describe('isBoardSolved', () => {
     it('should return false for empty board', () => {
-      expect(isBoardSolved(emptyUser, emptyUser, validSolution)).toBe(false);
+      expect(
+        isBoardSolved(emptyUser, emptyUser, validSolution)
+      ).toBe(false);
     });
 
     it('should return false for unfilled board', () => {
-      expect(isBoardSolved(validPuzzle, emptyUser, validSolution)).toBe(false);
+      expect(
+        isBoardSolved(
+          validPuzzle,
+          emptyUser,
+          validSolution
+        )
+      ).toBe(false);
     });
 
     it('should return true when correctly solved', () => {
@@ -932,24 +1243,41 @@ describe('Solver Utilities', () => {
           userInput += '0';
         }
       }
-      expect(isBoardSolved(validPuzzle, userInput, validSolution)).toBe(true);
+      expect(
+        isBoardSolved(
+          validPuzzle,
+          userInput,
+          validSolution
+        )
+      ).toBe(true);
     });
 
     it('should return false when filled but incorrect', () => {
       // Fill with wrong values
       const wrongSolution = '1'.repeat(81);
-      expect(isBoardSolved(emptyUser, wrongSolution, validSolution)).toBe(false);
+      expect(
+        isBoardSolved(
+          emptyUser,
+          wrongSolution,
+          validSolution
+        )
+      ).toBe(false);
     });
   });
 
   describe('getMergedBoardState', () => {
     it('should return original when user has no input', () => {
-      expect(getMergedBoardState(validPuzzle, emptyUser)).toBe(validPuzzle);
+      expect(
+        getMergedBoardState(validPuzzle, emptyUser)
+      ).toBe(validPuzzle);
     });
 
     it('should override with user input when present', () => {
       const userInput = '100000000' + '0'.repeat(72);
-      const result = getMergedBoardState(validPuzzle, userInput);
+      const result = getMergedBoardState(
+        validPuzzle,
+        userInput
+      );
       expect(result[0]).toBe('1'); // User override
       expect(result[1]).toBe('3'); // Original preserved
     });
@@ -963,13 +1291,17 @@ describe('Solver Utilities', () => {
           userInput += '0';
         }
       }
-      expect(getMergedBoardState(validPuzzle, userInput)).toBe(validSolution);
+      expect(
+        getMergedBoardState(validPuzzle, userInput)
+      ).toBe(validSolution);
     });
   });
 
   describe('hasInvalidPencilmarksStep', () => {
     it('should return false for undefined', () => {
-      expect(hasInvalidPencilmarksStep(undefined)).toBe(false);
+      expect(hasInvalidPencilmarksStep(undefined)).toBe(
+        false
+      );
     });
 
     it('should return false for empty array', () => {
@@ -1004,28 +1336,44 @@ describe('Solver Utilities', () => {
     });
 
     it('should return false for only commas', () => {
-      expect(hasPencilmarkContent(','.repeat(80))).toBe(false);
+      expect(hasPencilmarkContent(','.repeat(80))).toBe(
+        false
+      );
     });
 
     it('should return true for string with digits', () => {
-      expect(hasPencilmarkContent('123,45,,9,,')).toBe(true);
+      expect(hasPencilmarkContent('123,45,,9,,')).toBe(
+        true
+      );
     });
 
     it('should return true for single digit', () => {
-      expect(hasPencilmarkContent('1' + ','.repeat(80))).toBe(true);
+      expect(
+        hasPencilmarkContent('1' + ','.repeat(80))
+      ).toBe(true);
     });
   });
 
   describe('getTechniqueNameById', () => {
     it('should return correct name for known techniques', () => {
-      expect(getTechniqueNameById(TechniqueId.FULL_HOUSE)).toBe('Full House');
-      expect(getTechniqueNameById(TechniqueId.HIDDEN_SINGLE)).toBe('Hidden Single');
-      expect(getTechniqueNameById(TechniqueId.NAKED_SINGLE)).toBe('Naked Single');
-      expect(getTechniqueNameById(TechniqueId.XY_WING)).toBe('XY-Wing');
+      expect(
+        getTechniqueNameById(TechniqueId.FULL_HOUSE)
+      ).toBe('Full House');
+      expect(
+        getTechniqueNameById(TechniqueId.HIDDEN_SINGLE)
+      ).toBe('Hidden Single');
+      expect(
+        getTechniqueNameById(TechniqueId.NAKED_SINGLE)
+      ).toBe('Naked Single');
+      expect(
+        getTechniqueNameById(TechniqueId.XY_WING)
+      ).toBe('XY-Wing');
     });
 
     it('should return fallback for unknown technique', () => {
-      expect(getTechniqueNameById(999)).toBe('Technique 999');
+      expect(getTechniqueNameById(999)).toBe(
+        'Technique 999'
+      );
     });
 
     it('should handle all defined TechniqueId values', () => {
@@ -1037,5 +1385,555 @@ describe('Solver Utilities', () => {
           expect(name).not.toContain('Technique '); // Should have real name
         });
     });
+  });
+});
+
+// =============================================================================
+// Bitfield Utility Tests
+// =============================================================================
+
+describe('Bitfield Utilities', () => {
+  describe('techniqueToBit', () => {
+    it('should return 2 for technique ID 1', () => {
+      expect(techniqueToBit(TechniqueId.FULL_HOUSE)).toBe(
+        2
+      );
+    });
+
+    it('should return 4 for technique ID 2', () => {
+      expect(
+        techniqueToBit(TechniqueId.HIDDEN_SINGLE)
+      ).toBe(4);
+    });
+
+    it('should return 8 for technique ID 3', () => {
+      expect(
+        techniqueToBit(TechniqueId.NAKED_SINGLE)
+      ).toBe(8);
+    });
+
+    it('should handle technique ID 10 correctly', () => {
+      expect(techniqueToBit(TechniqueId.NAKED_QUAD)).toBe(
+        1024
+      );
+    });
+
+    it('should handle technique IDs >= 32 using BigInt', () => {
+      // BUG_PLUS_1 = 32, so bit = 2^32 = 4294967296
+      const bit = techniqueToBit(TechniqueId.BUG_PLUS_1);
+      expect(bit).toBe(4294967296);
+    });
+
+    it('should handle technique ID 42 (X_CHAIN)', () => {
+      // 2^42 = 4398046511104
+      const bit = techniqueToBit(TechniqueId.X_CHAIN);
+      expect(bit).toBe(4398046511104);
+    });
+  });
+
+  describe('hasTechnique', () => {
+    it('should return true when technique is present in bitfield', () => {
+      const bitfield =
+        techniqueToBit(TechniqueId.FULL_HOUSE) |
+        techniqueToBit(TechniqueId.NAKED_SINGLE);
+      expect(
+        hasTechnique(bitfield, TechniqueId.FULL_HOUSE)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.NAKED_SINGLE)
+      ).toBe(true);
+    });
+
+    it('should return false when technique is not in bitfield', () => {
+      const bitfield = techniqueToBit(
+        TechniqueId.FULL_HOUSE
+      );
+      expect(
+        hasTechnique(bitfield, TechniqueId.HIDDEN_SINGLE)
+      ).toBe(false);
+    });
+
+    it('should return false for empty bitfield', () => {
+      expect(
+        hasTechnique(0, TechniqueId.FULL_HOUSE)
+      ).toBe(false);
+    });
+
+    it('should handle technique IDs >= 32', () => {
+      const bitfield = techniqueToBit(
+        TechniqueId.BUG_PLUS_1
+      );
+      expect(
+        hasTechnique(bitfield, TechniqueId.BUG_PLUS_1)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.FULL_HOUSE)
+      ).toBe(false);
+    });
+
+    it('should work with combined high and low IDs', () => {
+      const bitfield = addTechnique(
+        techniqueToBit(TechniqueId.FULL_HOUSE),
+        TechniqueId.X_CHAIN
+      );
+      expect(
+        hasTechnique(bitfield, TechniqueId.FULL_HOUSE)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.X_CHAIN)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.HIDDEN_SINGLE)
+      ).toBe(false);
+    });
+  });
+
+  describe('addTechnique', () => {
+    it('should add a technique to an empty bitfield', () => {
+      const result = addTechnique(
+        0,
+        TechniqueId.FULL_HOUSE
+      );
+      expect(result).toBe(
+        techniqueToBit(TechniqueId.FULL_HOUSE)
+      );
+    });
+
+    it('should add a technique to an existing bitfield', () => {
+      const initial = techniqueToBit(
+        TechniqueId.FULL_HOUSE
+      );
+      const result = addTechnique(
+        initial,
+        TechniqueId.NAKED_SINGLE
+      );
+
+      expect(
+        hasTechnique(result, TechniqueId.FULL_HOUSE)
+      ).toBe(true);
+      expect(
+        hasTechnique(result, TechniqueId.NAKED_SINGLE)
+      ).toBe(true);
+    });
+
+    it('should be idempotent (adding same technique twice)', () => {
+      const first = addTechnique(
+        0,
+        TechniqueId.FULL_HOUSE
+      );
+      const second = addTechnique(
+        first,
+        TechniqueId.FULL_HOUSE
+      );
+      expect(second).toBe(first);
+    });
+
+    it('should handle adding technique IDs >= 32', () => {
+      const result = addTechnique(
+        0,
+        TechniqueId.BUG_PLUS_1
+      );
+      expect(
+        hasTechnique(result, TechniqueId.BUG_PLUS_1)
+      ).toBe(true);
+    });
+
+    it('should handle adding multiple high-value techniques', () => {
+      let bitfield = 0;
+      bitfield = addTechnique(
+        bitfield,
+        TechniqueId.SUE_DE_COQ
+      );
+      bitfield = addTechnique(
+        bitfield,
+        TechniqueId.ALS_XZ
+      );
+      bitfield = addTechnique(
+        bitfield,
+        TechniqueId.X_CYCLES
+      );
+
+      expect(
+        hasTechnique(bitfield, TechniqueId.SUE_DE_COQ)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.ALS_XZ)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.X_CYCLES)
+      ).toBe(true);
+      expect(
+        hasTechnique(bitfield, TechniqueId.FULL_HOUSE)
+      ).toBe(false);
+    });
+  });
+});
+
+// =============================================================================
+// UUID Validation Tests
+// =============================================================================
+
+describe('UUID Validation', () => {
+  describe('isValidUUID', () => {
+    it('should return true for valid lowercase UUID', () => {
+      expect(
+        isValidUUID(
+          '123e4567-e89b-12d3-a456-426614174000'
+        )
+      ).toBe(true);
+    });
+
+    it('should return true for valid uppercase UUID', () => {
+      expect(
+        isValidUUID(
+          '123E4567-E89B-12D3-A456-426614174000'
+        )
+      ).toBe(true);
+    });
+
+    it('should return true for valid mixed-case UUID', () => {
+      expect(
+        isValidUUID(
+          '123e4567-E89B-12d3-A456-426614174000'
+        )
+      ).toBe(true);
+    });
+
+    it('should return false for empty string', () => {
+      expect(isValidUUID('')).toBe(false);
+    });
+
+    it('should return false for non-UUID string', () => {
+      expect(isValidUUID('not-a-uuid')).toBe(false);
+    });
+
+    it('should return false for UUID without hyphens', () => {
+      expect(
+        isValidUUID('123e4567e89b12d3a456426614174000')
+      ).toBe(false);
+    });
+
+    it('should return false for UUID with extra characters', () => {
+      expect(
+        isValidUUID(
+          '123e4567-e89b-12d3-a456-426614174000x'
+        )
+      ).toBe(false);
+    });
+
+    it('should return false for UUID with invalid hex chars', () => {
+      expect(
+        isValidUUID(
+          'zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz'
+        )
+      ).toBe(false);
+    });
+  });
+
+  describe('validateUUID', () => {
+    it('should return valid UUID unchanged', () => {
+      const uuid =
+        '123e4567-e89b-12d3-a456-426614174000';
+      expect(validateUUID(uuid)).toBe(uuid);
+    });
+
+    it('should throw for empty string', () => {
+      expect(() => validateUUID('')).toThrow(
+        'UUID is required'
+      );
+    });
+
+    it('should throw for invalid UUID format', () => {
+      expect(() => validateUUID('not-a-uuid')).toThrow(
+        'Invalid UUID format'
+      );
+    });
+
+    it('should use custom name in error message', () => {
+      expect(() =>
+        validateUUID('', 'Board UUID')
+      ).toThrow('Board UUID is required');
+    });
+
+    it('should include the invalid value in error message', () => {
+      expect(() =>
+        validateUUID('bad-format', 'Board UUID')
+      ).toThrow('"bad-format"');
+    });
+  });
+});
+
+// =============================================================================
+// Cell Notation Utility Tests
+// =============================================================================
+
+describe('Cell Notation Utilities', () => {
+  describe('cellName', () => {
+    it('should format top-left cell as R1C1', () => {
+      expect(cellName(0, 0)).toBe('R1C1');
+    });
+
+    it('should format center cell as R5C5', () => {
+      expect(cellName(4, 4)).toBe('R5C5');
+    });
+
+    it('should format bottom-right cell as R9C9', () => {
+      expect(cellName(8, 8)).toBe('R9C9');
+    });
+
+    it('should format arbitrary cell correctly', () => {
+      expect(cellName(2, 7)).toBe('R3C8');
+    });
+  });
+
+  describe('cellList', () => {
+    it('should format single cell', () => {
+      expect(cellList([[0, 0]])).toBe('R1C1');
+    });
+
+    it('should format multiple cells comma-separated', () => {
+      expect(
+        cellList([
+          [0, 0],
+          [1, 2],
+          [4, 4],
+        ])
+      ).toBe('R1C1, R2C3, R5C5');
+    });
+
+    it('should handle empty array', () => {
+      expect(cellList([])).toBe('');
+    });
+  });
+
+  describe('getBlockIndex', () => {
+    it('should return 0 for top-left block cells', () => {
+      expect(getBlockIndex(0, 0)).toBe(0);
+      expect(getBlockIndex(1, 1)).toBe(0);
+      expect(getBlockIndex(2, 2)).toBe(0);
+    });
+
+    it('should return 4 for center block cells', () => {
+      expect(getBlockIndex(3, 3)).toBe(4);
+      expect(getBlockIndex(4, 4)).toBe(4);
+      expect(getBlockIndex(5, 5)).toBe(4);
+    });
+
+    it('should return 8 for bottom-right block cells', () => {
+      expect(getBlockIndex(6, 6)).toBe(8);
+      expect(getBlockIndex(7, 7)).toBe(8);
+      expect(getBlockIndex(8, 8)).toBe(8);
+    });
+
+    it('should return correct block for top-right', () => {
+      expect(getBlockIndex(0, 6)).toBe(2);
+    });
+
+    it('should return correct block for bottom-left', () => {
+      expect(getBlockIndex(6, 0)).toBe(6);
+    });
+  });
+
+  describe('getBlockNumber', () => {
+    it('should return 1 for top-left block', () => {
+      expect(getBlockNumber(0, 0)).toBe(1);
+    });
+
+    it('should return 5 for center block', () => {
+      expect(getBlockNumber(4, 4)).toBe(5);
+    });
+
+    it('should return 9 for bottom-right block', () => {
+      expect(getBlockNumber(8, 8)).toBe(9);
+    });
+  });
+
+  describe('indexToRowCol', () => {
+    it('should convert index 0 to [0, 0]', () => {
+      expect(indexToRowCol(0)).toEqual([0, 0]);
+    });
+
+    it('should convert index 40 to [4, 4]', () => {
+      expect(indexToRowCol(40)).toEqual([4, 4]);
+    });
+
+    it('should convert index 80 to [8, 8]', () => {
+      expect(indexToRowCol(80)).toEqual([8, 8]);
+    });
+
+    it('should convert index 9 to [1, 0]', () => {
+      expect(indexToRowCol(9)).toEqual([1, 0]);
+    });
+
+    it('should convert index 8 to [0, 8]', () => {
+      expect(indexToRowCol(8)).toEqual([0, 8]);
+    });
+  });
+
+  describe('rowColToIndex', () => {
+    it('should convert (0, 0) to 0', () => {
+      expect(rowColToIndex(0, 0)).toBe(0);
+    });
+
+    it('should convert (4, 4) to 40', () => {
+      expect(rowColToIndex(4, 4)).toBe(40);
+    });
+
+    it('should convert (8, 8) to 80', () => {
+      expect(rowColToIndex(8, 8)).toBe(80);
+    });
+
+    it('should be inverse of indexToRowCol', () => {
+      for (let i = 0; i < 81; i++) {
+        const [row, col] = indexToRowCol(i);
+        expect(rowColToIndex(row, col)).toBe(i);
+      }
+    });
+  });
+});
+
+// =============================================================================
+// Time Formatting Utility Tests
+// =============================================================================
+
+describe('Time Formatting Utilities', () => {
+  describe('formatTime', () => {
+    it('should format 0 seconds as 00:00', () => {
+      expect(formatTime(0)).toBe('00:00');
+    });
+
+    it('should format 65 seconds as 01:05', () => {
+      expect(formatTime(65)).toBe('01:05');
+    });
+
+    it('should format 3661 seconds as 01:01:01', () => {
+      expect(formatTime(3661)).toBe('01:01:01');
+    });
+
+    it('should format 59 seconds as 00:59', () => {
+      expect(formatTime(59)).toBe('00:59');
+    });
+
+    it('should format 60 seconds as 01:00', () => {
+      expect(formatTime(60)).toBe('01:00');
+    });
+
+    it('should format 3600 seconds as 01:00:00', () => {
+      expect(formatTime(3600)).toBe('01:00:00');
+    });
+
+    it('should pad single digits', () => {
+      expect(formatTime(5)).toBe('00:05');
+    });
+  });
+
+  describe('parseTime', () => {
+    it('should parse MM:SS format', () => {
+      expect(parseTime('01:05')).toBe(65);
+    });
+
+    it('should parse HH:MM:SS format', () => {
+      expect(parseTime('01:01:01')).toBe(3661);
+    });
+
+    it('should return 0 for invalid format', () => {
+      expect(parseTime('invalid')).toBe(0);
+    });
+
+    it('should return 0 for empty string', () => {
+      expect(parseTime('')).toBe(0);
+    });
+
+    it('should parse 00:00 as 0', () => {
+      expect(parseTime('00:00')).toBe(0);
+    });
+
+    it('should roundtrip with formatTime for MM:SS', () => {
+      expect(parseTime(formatTime(65))).toBe(65);
+    });
+
+    it('should roundtrip with formatTime for HH:MM:SS', () => {
+      expect(parseTime(formatTime(3661))).toBe(3661);
+    });
+
+    it('should return 0 for single value (no colon)', () => {
+      expect(parseTime('123')).toBe(0);
+    });
+  });
+
+  describe('formatDigits', () => {
+    it('should format string digits', () => {
+      expect(formatDigits('123')).toBe('{1, 2, 3}');
+    });
+
+    it('should format number array', () => {
+      expect(formatDigits([1, 2, 3])).toBe('{1, 2, 3}');
+    });
+
+    it('should handle single digit string', () => {
+      expect(formatDigits('5')).toBe('{5}');
+    });
+
+    it('should handle single element array', () => {
+      expect(formatDigits([9])).toBe('{9}');
+    });
+
+    it('should handle empty string', () => {
+      expect(formatDigits('')).toBe('{}');
+    });
+
+    it('should handle empty array', () => {
+      expect(formatDigits([])).toBe('{}');
+    });
+  });
+});
+
+// =============================================================================
+// Technique Icon URL Tests
+// =============================================================================
+
+describe('getTechniqueIconUrl', () => {
+  it('should convert Full House to correct URL', () => {
+    expect(
+      getTechniqueIconUrl(TechniqueId.FULL_HOUSE)
+    ).toBe('/technique.full.house.svg');
+  });
+
+  it('should convert X-Wing (with hyphen) to dots', () => {
+    expect(
+      getTechniqueIconUrl(TechniqueId.X_WING)
+    ).toBe('/technique.x.wing.svg');
+  });
+
+  it('should convert XY-Wing to dots', () => {
+    expect(
+      getTechniqueIconUrl(TechniqueId.XY_WING)
+    ).toBe('/technique.xy.wing.svg');
+  });
+
+  it('should handle multi-word technique names', () => {
+    expect(
+      getTechniqueIconUrl(TechniqueId.HIDDEN_SINGLE)
+    ).toBe('/technique.hidden.single.svg');
+  });
+
+  it('should handle technique names with numbers', () => {
+    expect(
+      getTechniqueIconUrl(
+        TechniqueId.UNIQUE_RECTANGLE_1
+      )
+    ).toBe('/technique.unique.rectangle.type.1.svg');
+  });
+
+  it('should handle 3D Medusa (number prefix)', () => {
+    expect(
+      getTechniqueIconUrl(TechniqueId.MEDUSA_COLORING)
+    ).toBe('/technique.3d.medusa.svg');
+  });
+
+  it('should handle unknown technique ID with fallback name', () => {
+    expect(getTechniqueIconUrl(999)).toBe(
+      '/technique.technique.999.svg'
+    );
   });
 });

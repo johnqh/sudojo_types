@@ -19,68 +19,184 @@ import type { Optional } from '@sudobility/types';
 // Entity Types (database models)
 // =============================================================================
 
+/**
+ * ISO date string type alias for date-only values in YYYY-MM-DD format.
+ *
+ * Used for fields like {@link Daily.date} that represent calendar dates
+ * rather than precise timestamps.
+ *
+ * @example "2024-01-15"
+ */
+export type ISODateString = string;
+
+/**
+ * A difficulty level grouping for Sudoku techniques.
+ * Levels range from 1 (easiest) to 12 (hardest) and map to karate belt colors.
+ *
+ * Note: Entity timestamps (`created_at`, `updated_at`) are `Date | null` in
+ * the database model, but API responses serialize them as ISO 8601 strings.
+ */
 export interface Level {
+  /** Level number (1-12), used as primary key */
   level: number;
+  /** Human-readable level name (e.g., "Beginner", "Intermediate") */
   title: string;
+  /** Optional description or instructional text for this level */
   text: string | null;
+  /** Whether this level requires a paid subscription to access */
   requires_subscription: boolean | null;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
+/**
+ * A Sudoku solving technique belonging to a difficulty level.
+ * Techniques are the core learning units of the platform (e.g., Naked Single, X-Wing).
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
 export interface Technique {
+  /** Technique number matching the solver engine's SudokuTechnique enum */
   technique: number;
+  /** The difficulty level this technique belongs to (1-12), or null if unassigned */
   level: number | null;
+  /** Human-readable technique name (e.g., "Naked Single", "X-Wing") */
   title: string;
+  /** URL-friendly slug for routing (e.g., "naked-single") */
   path: string | null;
+  /** Comma-separated list of prerequisite technique IDs */
   dependencies: string | null;
+  /** Optional description or instructional text */
   text: string | null;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
+/**
+ * A learning content card for a technique, supporting multiple languages.
+ * Each technique can have multiple learning cards ordered by index.
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
 export interface Learning {
+  /** Unique identifier (UUID v4) */
   uuid: string;
+  /** The technique number this learning content belongs to */
   technique: number | null;
+  /** Display order within the technique's learning cards (0-based) */
   index: number;
+  /** ISO 639-1 language code (e.g., "en", "ja") */
   language_code: string;
+  /** Instructional text content (may contain markdown) */
   text: string | null;
+  /** URL to an illustrative image */
   image_url: string | null;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
+/**
+ * A Sudoku puzzle board with its solution and metadata.
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
 export interface Board {
+  /** Unique identifier (UUID v4) */
   uuid: string;
+  /** Difficulty level (1-12) assigned to this puzzle */
   level: number | null;
+  /** Whether the puzzle has rotational symmetry in its clue placement */
   symmetrical: boolean | null;
+  /** 81-character puzzle string where '0' represents empty cells, '1'-'9' are given digits */
   board: string;
+  /** 81-character solution string with all cells filled ('1'-'9') */
   solution: string;
+  /**
+   * Bitmask of techniques required to solve this puzzle.
+   * Each bit corresponds to a {@link TechniqueId} enum value (bit N = technique N).
+   * Uses BigInt internally in utility functions since values can exceed
+   * `Number.MAX_SAFE_INTEGER` for puzzles requiring techniques with IDs >= 53.
+   *
+   * Use {@link hasTechnique} to check if a specific technique is present,
+   * and {@link addTechnique} to set a technique bit.
+   */
   techniques: number | null;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
+/**
+ * A daily puzzle published for a specific calendar date.
+ * Each date has exactly one daily puzzle.
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
 export interface Daily {
+  /** Unique identifier (UUID v4) */
   uuid: string;
-  date: string;
+  /**
+   * Calendar date in YYYY-MM-DD format (e.g., "2024-01-15").
+   * This is a date-only string, not a full ISO 8601 timestamp.
+   */
+  date: ISODateString;
+  /** UUID of the source board, or null if board data is inlined */
   board_uuid: string | null;
+  /** Difficulty level (1-12) assigned to this daily puzzle */
   level: number | null;
+  /**
+   * Bitmask of techniques required to solve this puzzle.
+   * Each bit corresponds to a {@link TechniqueId} enum value (bit N = technique N).
+   * Uses BigInt internally in utility functions since values can exceed
+   * `Number.MAX_SAFE_INTEGER` for puzzles requiring techniques with IDs >= 53.
+   *
+   * Use {@link hasTechnique} to check if a specific technique is present,
+   * and {@link addTechnique} to set a technique bit.
+   */
   techniques: number | null;
+  /** 81-character puzzle string where '0' represents empty cells */
   board: string;
+  /** 81-character solution string with all cells filled */
   solution: string;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
+/**
+ * A challenge puzzle with configurable difficulty.
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
 export interface Challenge {
+  /** Unique identifier (UUID v4) */
   uuid: string;
+  /** UUID of the source board, or null if board data is inlined */
   board_uuid: string | null;
+  /** Difficulty level (1-12) assigned to this challenge */
   level: number | null;
+  /** Numeric difficulty rating (higher = harder) */
   difficulty: number | null;
+  /** 81-character puzzle string where '0' represents empty cells */
   board: string;
+  /** 81-character solution string with all cells filled */
   solution: string;
+  /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
 }
 
@@ -608,23 +724,49 @@ export const ALL_TECHNIQUE_IDS: TechniqueId[] = Object.values(
   TechniqueId
 ).filter((v): v is TechniqueId => typeof v === 'number');
 
-/** Convert a TechniqueId to its bit position in the bitfield */
-// Uses BigInt internally to support techniques >= 32, then converts to Number
-// (safe since we have < 52 techniques, well within Number.MAX_SAFE_INTEGER)
-// TechniqueId N maps to bit N (1 << N)
+/**
+ * Convert a TechniqueId to its bit value in the bitfield.
+ * TechniqueId N maps to bit N (1 << N).
+ *
+ * Uses BigInt internally to support techniques >= 32, then converts to Number.
+ *
+ * **Precision warning:** Safe for technique IDs < 53 (since 2^52 is within
+ * `Number.MAX_SAFE_INTEGER`). For IDs >= 53, the Number conversion may lose
+ * precision. Currently all defined techniques (1-60) include IDs up to 60,
+ * so IDs 53-60 may produce imprecise results when converted to Number.
+ *
+ * @param techniqueId - The technique ID from {@link TechniqueId} enum
+ * @returns The bit value as a number (1 << techniqueId)
+ */
 export function techniqueToBit(techniqueId: TechniqueId): number {
   return Number(BigInt(1) << BigInt(techniqueId));
 }
 
-/** Check if a technique is present in a bitfield */
-// Uses BigInt internally to support techniques >= 32
+/**
+ * Check if a technique is present in a bitfield.
+ * Uses BigInt internally to support techniques >= 32.
+ *
+ * @param bitfield - The techniques bitmask (from {@link Board.techniques} or {@link Daily.techniques})
+ * @param techniqueId - The technique ID to check
+ * @returns true if the technique bit is set in the bitfield
+ */
 export function hasTechnique(bitfield: number, techniqueId: TechniqueId): boolean {
   const bit = BigInt(1) << BigInt(techniqueId);
   return (BigInt(bitfield) & bit) !== BigInt(0);
 }
 
-/** Add a technique to a bitfield */
-// Uses BigInt internally to support techniques >= 32
+/**
+ * Add a technique to a bitfield by setting its bit.
+ * Uses BigInt internally to support techniques >= 32.
+ *
+ * **Precision warning:** The result is converted back to Number, which may
+ * lose precision if the resulting bitfield exceeds `Number.MAX_SAFE_INTEGER`
+ * (i.e., when techniques with IDs >= 53 are included).
+ *
+ * @param bitfield - The current techniques bitmask
+ * @param techniqueId - The technique ID to add
+ * @returns The updated bitmask with the technique bit set
+ */
 export function addTechnique(bitfield: number, techniqueId: TechniqueId): number {
   const bit = BigInt(1) << BigInt(techniqueId);
   return Number(BigInt(bitfield) | bit);
@@ -927,6 +1069,33 @@ export function stringifyBoard(board: number[][]): string {
   return result;
 }
 
+/** Pattern matching a valid 81-character board string (digits 0-9 and dots) */
+const BOARD_STRING_PATTERN = /^[0-9.]{81}$/;
+
+/**
+ * Validate that a string is a well-formed 81-character board string.
+ * A valid board string consists of exactly 81 characters, each being a digit
+ * ('0'-'9') or a dot ('.'), where '0' and '.' represent empty cells.
+ *
+ * This is a lightweight validation that checks format only -- it does not
+ * verify that the board represents a solvable or valid Sudoku puzzle.
+ *
+ * @param s - The string to validate
+ * @returns true if the string is a valid board string format
+ *
+ * @example
+ * ```typescript
+ * isValidBoardString('530070000600195000098000060800060003400803001700020006060000280000419005000080079'); // true
+ * isValidBoardString('.'.repeat(81)); // true (all empty)
+ * isValidBoardString('0'.repeat(81)); // true (all empty)
+ * isValidBoardString('short');        // false (wrong length)
+ * isValidBoardString('x'.repeat(81)); // false (invalid characters)
+ * ```
+ */
+export function isValidBoardString(s: string): boolean {
+  return BOARD_STRING_PATTERN.test(s);
+}
+
 // =============================================================================
 // Scramble Utilities (for creating visually different but equivalent puzzles)
 // =============================================================================
@@ -972,14 +1141,30 @@ export interface ScrambleResult {
   puzzle: string;
   /** The scrambled solution string */
   solution: string;
-  /** The digit mapping used (original -> scrambled) */
+  /**
+   * The digit mapping used (original -> scrambled).
+   *
+   * @deprecated Map does not serialize to JSON. If you need to persist
+   * scramble results, convert to a plain object first:
+   * `Object.fromEntries(result.digitMapping)`
+   */
   digitMapping: Map<number, number>;
-  /** The reverse digit mapping (scrambled -> original) */
+  /**
+   * The reverse digit mapping (scrambled -> original).
+   *
+   * @deprecated Map does not serialize to JSON. If you need to persist
+   * scramble results, convert to a plain object first:
+   * `Object.fromEntries(result.reverseDigitMapping)`
+   */
   reverseDigitMapping: Map<number, number>;
 }
 
 /**
- * Fisher-Yates shuffle algorithm for arrays
+ * Fisher-Yates shuffle algorithm for arrays.
+ *
+ * Uses `Math.random()` which is non-deterministic and not
+ * cryptographically secure. Scramble results are intended for visual
+ * variety, not for security purposes.
  */
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -1387,8 +1572,11 @@ export function hasPencilmarkContent(pencilmarks: string): boolean {
   return pencilmarks.replace(/,/g, '').length > 0;
 }
 
-/** Map from TechniqueId to display title */
-const TECHNIQUE_ID_TO_TITLE: Record<number, string> = {
+/**
+ * Map from TechniqueId to display title.
+ * Covers all defined technique IDs (1-60).
+ */
+const TECHNIQUE_ID_TO_TITLE: Record<TechniqueId, string> = {
   [TechniqueId.FULL_HOUSE]: 'Full House',
   [TechniqueId.HIDDEN_SINGLE]: 'Hidden Single',
   [TechniqueId.NAKED_SINGLE]: 'Naked Single',
@@ -1465,7 +1653,10 @@ const TECHNIQUE_ID_TO_TITLE: Record<number, string> = {
  * ```
  */
 export function getTechniqueNameById(techniqueId: number): string {
-  return TECHNIQUE_ID_TO_TITLE[techniqueId] ?? `Technique ${techniqueId}`;
+  return (
+    TECHNIQUE_ID_TO_TITLE[techniqueId as TechniqueId] ??
+    `Technique ${techniqueId}`
+  );
 }
 
 // =============================================================================
@@ -1813,25 +2004,49 @@ export interface EarnedBadge {
   requirementValue: number | null;
 }
 
-/** Game session info */
+/**
+ * An active game session tracking a player's puzzle attempt.
+ * Created via {@link GameStartRequest} and completed via {@link GameFinishRequest}.
+ *
+ * Flow: start (POST /gamification/start) -> hint (POST /solver/solve) -> finish (POST /gamification/finish)
+ */
 export interface GameSession {
+  /** Unique session identifier */
   sessionId: string;
+  /** 81-character puzzle string being played */
   board: string;
+  /** Difficulty level of the puzzle (1-12) */
   level: number;
+  /** Whether this is a daily puzzle or a level-based puzzle */
   puzzleType: 'daily' | 'level';
+  /** Identifier of the specific puzzle (daily UUID or board UUID), or null */
   puzzleId: string | null;
+  /** Whether the player has used any hints during this session */
   hintUsed: boolean;
+  /** Total number of hints used during this session */
   hintsCount: number;
+  /** ISO 8601 timestamp when the session was started */
   startedAt: string;
 }
 
-/** Request to start a game session */
+/**
+ * Request body to start a new game session.
+ * The session tracks hint usage and elapsed time for point calculation.
+ *
+ * Flow: start (POST /gamification/start) -> hint (POST /solver/solve) -> finish (POST /gamification/finish)
+ */
 export interface GameStartRequest {
+  /** 81-character puzzle string (the starting board state) */
   board: string;
+  /** 81-character solution string for validation */
   solution: string;
+  /** Difficulty level of the puzzle (1-12), used for point calculation */
   level: number;
+  /** Bitmask of techniques required to solve (see {@link Board.techniques}) */
   techniques: number;
+  /** Whether this is a daily puzzle or a level-based puzzle */
   puzzleType: 'daily' | 'level';
+  /** Optional identifier of the specific puzzle (daily UUID or board UUID) */
   puzzleId?: string;
 }
 
@@ -1871,7 +2086,13 @@ export interface NewBadge {
   description: string | null;
 }
 
-/** Response from finishing a game session */
+/**
+ * Response from finishing a game session (POST /gamification/finish).
+ * Contains the points breakdown, optional level-up info, and any newly earned badges.
+ *
+ * Note: Hint points are awarded separately via POST /solver/solve during gameplay,
+ * not included in this response.
+ */
 export interface GameFinishResponse {
   /** Points earned from this puzzle (hint points awarded separately via /solver/solve) */
   points: GameFinishPoints;
@@ -1889,13 +2110,22 @@ export interface GamificationStats {
   badges: EarnedBadge[];
 }
 
-/** Point transaction record */
+/**
+ * A record of points earned or spent by a user.
+ * Transaction types include "puzzle_complete", "hint_used", "badge_earned", etc.
+ */
 export interface PointTransaction {
+  /** Unique transaction identifier */
   id: string;
+  /** Firebase UID of the user */
   userId: string;
+  /** Points amount (positive = earned, negative = spent) */
   points: number;
+  /** Type of transaction (e.g., "puzzle_complete", "hint_used") */
   transactionType: string;
+  /** Additional context for the transaction (e.g., puzzle ID, technique level) */
   metadata: Record<string, unknown> | null;
+  /** ISO 8601 timestamp when the transaction was created */
   createdAt: string | null;
 }
 
