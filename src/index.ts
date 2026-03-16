@@ -45,6 +45,12 @@ export interface Level {
   text: string | null;
   /** Whether this level requires a paid subscription to access */
   requires_subscription: boolean | null;
+  /**
+   * Comma-delimited entitlement IDs required to access this level.
+   * If null or empty, the level is free. If set, the user needs ANY ONE
+   * of the listed entitlements (e.g., "blue_belt,red_belt").
+   */
+  entitlement: string | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -210,12 +216,14 @@ export interface LevelCreateRequest {
   title: string;
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
+  entitlement: Optional<string>;
 }
 
 export interface LevelUpdateRequest {
   title: Optional<string>;
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
+  entitlement: Optional<string>;
 }
 
 // Technique requests
@@ -614,12 +622,45 @@ export interface HintAccessDeniedResponse {
   timestamp: string;
 }
 
-/** Hint level limits by entitlement */
+/**
+ * Hint level limits by entitlement.
+ * @deprecated Use the `entitlement` field on the Level object instead.
+ * Will be removed after all consumers migrate.
+ */
 export const HINT_LEVEL_LIMITS = {
   red_belt: Infinity,
   blue_belt: 5,
   free: 3,
 } as const;
+
+// =============================================================================
+// Entitlement Utilities
+// =============================================================================
+
+/**
+ * Parse a comma-delimited entitlement string into an array of entitlement IDs.
+ * Returns an empty array if the input is null, undefined, or empty.
+ */
+export function parseEntitlements(entitlement: string | null | undefined): HintEntitlement[] {
+  if (!entitlement) return [];
+  return entitlement.split(',').map(s => s.trim()).filter(Boolean) as HintEntitlement[];
+}
+
+/**
+ * Check if a user has the required entitlement for a level.
+ * Returns true if:
+ * - The level is free (entitlement is null/empty), OR
+ * - The user has ANY ONE of the level's listed entitlements.
+ */
+export function hasRequiredEntitlement(
+  levelEntitlement: string | null | undefined,
+  userEntitlements: string[],
+): boolean {
+  if (!levelEntitlement) return true;
+  const required = parseEntitlements(levelEntitlement);
+  if (required.length === 0) return true;
+  return required.some(e => userEntitlements.includes(e));
+}
 
 /**
  * Board data for validate/generate endpoints.
