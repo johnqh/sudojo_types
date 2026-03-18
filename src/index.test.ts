@@ -140,6 +140,7 @@ describe('Entity Types', () => {
       requires_subscription: false,
       entitlement: null,
       offer_id: null,
+      percentage: null,
       created_at: new Date(),
       updated_at: null,
     };
@@ -149,6 +150,7 @@ describe('Entity Types', () => {
     expectTypeOf(level.text).toEqualTypeOf<string | null>();
     expectTypeOf(level.requires_subscription).toEqualTypeOf<boolean | null>();
     expectTypeOf(level.offer_id).toEqualTypeOf<string | null>();
+    expectTypeOf(level.percentage).toEqualTypeOf<number | null>();
     expectTypeOf(level.created_at).toEqualTypeOf<Date | null>();
     expectTypeOf(level.updated_at).toEqualTypeOf<Date | null>();
   });
@@ -161,6 +163,7 @@ describe('Entity Types', () => {
       path: 'naked-singles',
       dependencies: null,
       text: null,
+      percentage: null,
       created_at: null,
       updated_at: null,
     };
@@ -170,6 +173,7 @@ describe('Entity Types', () => {
     expectTypeOf(technique.title).toBeString();
     expectTypeOf(technique.path).toEqualTypeOf<string | null>();
     expectTypeOf(technique.dependencies).toEqualTypeOf<string | null>();
+    expectTypeOf(technique.percentage).toEqualTypeOf<number | null>();
   });
 
   it('Learning type should have correct shape', () => {
@@ -332,6 +336,7 @@ describe('Request Types use Optional<T>', () => {
       requires_subscription: undefined,
       entitlement: undefined,
       offer_id: undefined,
+      percentage: undefined,
     };
 
     expectTypeOf(request.level).toBeNumber();
@@ -341,6 +346,7 @@ describe('Request Types use Optional<T>', () => {
       Optional<boolean>
     >();
     expectTypeOf(request.offer_id).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(request.percentage).toEqualTypeOf<Optional<number>>();
   });
 
   it('LevelUpdateRequest should use Optional for all fields', () => {
@@ -350,10 +356,12 @@ describe('Request Types use Optional<T>', () => {
       requires_subscription: undefined,
       entitlement: undefined,
       offer_id: undefined,
+      percentage: undefined,
     };
 
     expectTypeOf(request.title).toEqualTypeOf<Optional<string>>();
     expectTypeOf(request.offer_id).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(request.percentage).toEqualTypeOf<Optional<number>>();
   });
 
   it('TechniqueCreateRequest should use Optional for optional fields', () => {
@@ -362,11 +370,13 @@ describe('Request Types use Optional<T>', () => {
       level: 1,
       title: 'Test',
       text: undefined,
+      percentage: undefined,
     };
 
     expectTypeOf(request.technique).toBeNumber();
     expectTypeOf(request.level).toBeNumber();
     expectTypeOf(request.text).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(request.percentage).toEqualTypeOf<Optional<number>>();
   });
 
   it('TechniqueUpdateRequest should use Optional for all fields', () => {
@@ -374,10 +384,12 @@ describe('Request Types use Optional<T>', () => {
       level: undefined,
       title: undefined,
       text: undefined,
+      percentage: undefined,
     };
 
     expectTypeOf(request.level).toEqualTypeOf<Optional<number>>();
     expectTypeOf(request.title).toEqualTypeOf<Optional<string>>();
+    expectTypeOf(request.percentage).toEqualTypeOf<Optional<number>>();
   });
 
   it('LearningCreateRequest should handle Optional with null union', () => {

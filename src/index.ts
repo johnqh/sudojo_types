@@ -56,6 +56,8 @@ export interface Level {
    * required entitlement. If null, the generic paywall is shown.
    */
   offer_id: string | null;
+  /** Percentage of total boards that belong to this level (0-100) */
+  percentage: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -82,6 +84,8 @@ export interface Technique {
   dependencies: string | null;
   /** Optional description or instructional text */
   text: string | null;
+  /** Percentage of total boards that use this technique (0-100) */
+  percentage: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -223,6 +227,7 @@ export interface LevelCreateRequest {
   requires_subscription: Optional<boolean>;
   entitlement: Optional<string>;
   offer_id: Optional<string>;
+  percentage: Optional<number>;
 }
 
 export interface LevelUpdateRequest {
@@ -231,6 +236,7 @@ export interface LevelUpdateRequest {
   requires_subscription: Optional<boolean>;
   entitlement: Optional<string>;
   offer_id: Optional<string>;
+  percentage: Optional<number>;
 }
 
 // Technique requests
@@ -239,12 +245,14 @@ export interface TechniqueCreateRequest {
   level: number;
   title: string;
   text: Optional<string>;
+  percentage: Optional<number>;
 }
 
 export interface TechniqueUpdateRequest {
   level: Optional<number>;
   title: Optional<string>;
   text: Optional<string>;
+  percentage: Optional<number>;
 }
 
 // Learning requests
