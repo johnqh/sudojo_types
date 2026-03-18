@@ -51,6 +51,11 @@ export interface Level {
    * of the listed entitlements (e.g., "blue_belt,red_belt").
    */
   entitlement: string | null;
+  /**
+   * RevenueCat offering identifier to show when the user lacks the
+   * required entitlement. If null, the generic paywall is shown.
+   */
+  offer_id: string | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -217,6 +222,7 @@ export interface LevelCreateRequest {
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
   entitlement: Optional<string>;
+  offer_id: Optional<string>;
 }
 
 export interface LevelUpdateRequest {
@@ -224,6 +230,7 @@ export interface LevelUpdateRequest {
   text: Optional<string>;
   requires_subscription: Optional<boolean>;
   entitlement: Optional<string>;
+  offer_id: Optional<string>;
 }
 
 // Technique requests
@@ -596,7 +603,10 @@ export interface SolveData {
 // =============================================================================
 
 /** User state for hint access control */
-export type HintAccessUserState = 'anonymous' | 'no_subscription' | 'insufficient_tier';
+export type HintAccessUserState =
+  | 'anonymous'
+  | 'no_subscription'
+  | 'insufficient_tier';
 
 /** Entitlement identifiers for hint access */
 export type HintEntitlement = 'blue_belt' | 'red_belt';
@@ -641,9 +651,14 @@ export const HINT_LEVEL_LIMITS = {
  * Parse a comma-delimited entitlement string into an array of entitlement IDs.
  * Returns an empty array if the input is null, undefined, or empty.
  */
-export function parseEntitlements(entitlement: string | null | undefined): HintEntitlement[] {
+export function parseEntitlements(
+  entitlement: string | null | undefined
+): HintEntitlement[] {
   if (!entitlement) return [];
-  return entitlement.split(',').map(s => s.trim()).filter(Boolean) as HintEntitlement[];
+  return entitlement
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) as HintEntitlement[];
 }
 
 /**
@@ -654,12 +669,12 @@ export function parseEntitlements(entitlement: string | null | undefined): HintE
  */
 export function hasRequiredEntitlement(
   levelEntitlement: string | null | undefined,
-  userEntitlements: string[],
+  userEntitlements: string[]
 ): boolean {
   if (!levelEntitlement) return true;
   const required = parseEntitlements(levelEntitlement);
   if (required.length === 0) return true;
-  return required.some(e => userEntitlements.includes(e));
+  return required.some((e) => userEntitlements.includes(e));
 }
 
 /**
@@ -791,7 +806,10 @@ export function techniqueToBit(techniqueId: TechniqueId): number {
  * @param techniqueId - The technique ID to check
  * @returns true if the technique bit is set in the bitfield
  */
-export function hasTechnique(bitfield: number, techniqueId: TechniqueId): boolean {
+export function hasTechnique(
+  bitfield: number,
+  techniqueId: TechniqueId
+): boolean {
   const bit = BigInt(1) << BigInt(techniqueId);
   return (BigInt(bitfield) & bit) !== BigInt(0);
 }
@@ -808,7 +826,10 @@ export function hasTechnique(bitfield: number, techniqueId: TechniqueId): boolea
  * @param techniqueId - The technique ID to add
  * @returns The updated bitmask with the technique bit set
  */
-export function addTechnique(bitfield: number, techniqueId: TechniqueId): number {
+export function addTechnique(
+  bitfield: number,
+  techniqueId: TechniqueId
+): number {
   const bit = BigInt(1) << BigInt(techniqueId);
   return Number(BigInt(bitfield) | bit);
 }
@@ -1234,7 +1255,9 @@ function createDigitMapping(): Map<number, number> {
 /**
  * Creates the reverse of a digit mapping
  */
-function reverseDigitMapping(mapping: Map<number, number>): Map<number, number> {
+function reverseDigitMapping(
+  mapping: Map<number, number>
+): Map<number, number> {
   const reverse = new Map<number, number>();
   for (const [original, scrambled] of mapping) {
     reverse.set(scrambled, original);
@@ -1591,7 +1614,7 @@ export function hasInvalidPencilmarksStep(
   steps: Array<{ title?: string }> | undefined
 ): boolean {
   if (!steps) return false;
-  return steps.some(step => step.title === 'Invalid Pencilmarks');
+  return steps.some((step) => step.title === 'Invalid Pencilmarks');
 }
 
 /**
@@ -1774,7 +1797,9 @@ export function cellList(cells: Array<[number, number]> | number[][]): string {
  * ```
  */
 export function getBlockIndex(row: number, col: number): number {
-  return Math.floor(row / BLOCK_SIZE) * BLOCK_SIZE + Math.floor(col / BLOCK_SIZE);
+  return (
+    Math.floor(row / BLOCK_SIZE) * BLOCK_SIZE + Math.floor(col / BLOCK_SIZE)
+  );
 }
 
 /**
@@ -1866,7 +1891,7 @@ export function formatTime(seconds: number): string {
  * ```
  */
 export function parseTime(timeString: string): number {
-  const parts = timeString.split(':').map(p => parseInt(p, 10));
+  const parts = timeString.split(':').map((p) => parseInt(p, 10));
   if (parts.some(isNaN)) return 0;
 
   if (parts.length === 2) {
@@ -1890,7 +1915,8 @@ export function parseTime(timeString: string): number {
  * ```
  */
 export function formatDigits(digits: string | number[]): string {
-  const arr = typeof digits === 'string' ? digits.split('') : digits.map(String);
+  const arr =
+    typeof digits === 'string' ? digits.split('') : digits.map(String);
   return `{${arr.join(', ')}}`;
 }
 
@@ -1899,7 +1925,8 @@ export function formatDigits(digits: string | number[]): string {
 // =============================================================================
 
 /** UUID regex pattern (lowercase or uppercase) */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Check if a string is a valid UUID format.
@@ -2007,7 +2034,7 @@ export function getTechniqueIconUrl(techniqueId: number): string {
   const normalized = title
     .toLowerCase()
     .replace(/\s+/g, '.') // spaces to dots
-    .replace(/-/g, '.');  // hyphens to dots
+    .replace(/-/g, '.'); // hyphens to dots
   return `/technique.${normalized}.svg`;
 }
 
