@@ -416,7 +416,7 @@ export interface RevenueCatEntitlement {
 
 export interface SubscriptionResult {
   hasSubscription: boolean;
-  entitlement: RevenueCatEntitlement | null;
+  entitlements: RevenueCatEntitlement[];
 }
 
 // =============================================================================
