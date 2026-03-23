@@ -56,7 +56,7 @@ export interface Level {
    * required entitlement. If null, the generic paywall is shown.
    */
   offer_id: string | null;
-  /** Percentage of total boards that belong to this level (0-100) */
+  /** Fraction of total boards that belong to this level (0-1) */
   percentage: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
@@ -84,7 +84,7 @@ export interface Technique {
   dependencies: string | null;
   /** Optional description or instructional text */
   text: string | null;
-  /** Percentage of total boards that use this technique (0-100) */
+  /** Fraction of total boards that use this technique (0-1) */
   percentage: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
