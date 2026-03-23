@@ -686,6 +686,23 @@ export function hasRequiredEntitlement(
 }
 
 /**
+ * Derive the subscription offering ID from a level's entitlement.
+ *
+ * - No entitlement → `undefined` (free level)
+ * - Includes `blue_belt` (e.g. `"blue_belt,red_belt"`) → `"1_blue_belt"`
+ * - Otherwise (e.g. `"red_belt"`) → `"8_red_belt"`
+ */
+export function getSubscriptionOfferId(
+  entitlement: string | null | undefined
+): string | undefined {
+  if (!entitlement) return undefined;
+  const parsed = parseEntitlements(entitlement);
+  if (parsed.length === 0) return undefined;
+  if (parsed.includes('blue_belt')) return '1_blue_belt';
+  return '8_red_belt';
+}
+
+/**
  * Board data for validate/generate endpoints.
  * Includes solution and puzzle metadata (level, techniques bitmask).
  */
