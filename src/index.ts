@@ -62,6 +62,11 @@ export interface Level {
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
+  /** Optional localization data for i18n translation of title and text */
+  localization?: {
+    title?: LocalizedHint;
+    text?: LocalizedHint;
+  };
 }
 
 /**
@@ -90,6 +95,11 @@ export interface Technique {
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
+  /** Optional localization data for i18n translation of title and text */
+  localization?: {
+    title?: LocalizedHint;
+    text?: LocalizedHint;
+  };
 }
 
 /**
@@ -116,6 +126,10 @@ export interface Learning {
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
   updated_at: Date | null;
+  /** Optional localization data for i18n translation of text */
+  localization?: {
+    text?: LocalizedHint;
+  };
 }
 
 /**
@@ -558,8 +572,11 @@ export interface SolverHintStep {
   groups?: SolverCellGroup[];
   /** Optional: Primary digit for single-digit techniques (1-9) */
   digit?: number;
-  /** Optional: Localization data for i18n translation */
-  localization?: LocalizedHint;
+  /** Optional: Localization data for i18n translation of title and text */
+  localization?: {
+    title?: LocalizedHint;
+    text?: LocalizedHint;
+  };
 }
 
 /**
@@ -937,6 +954,10 @@ export interface TechniquePracticeCountItem {
   technique: number;
   technique_title: string;
   count: number;
+  /** Optional localization data for i18n translation of technique title */
+  localization?: {
+    title?: LocalizedHint;
+  };
 }
 
 // =============================================================================
@@ -2084,6 +2105,11 @@ export interface BadgeDefinition {
   iconUrl: string | null;
   requirementValue: number | null;
   createdAt: string | null;
+  /** Optional localization data for i18n translation of title and description */
+  localization?: {
+    title?: LocalizedHint;
+    description?: LocalizedHint;
+  };
 }
 
 /** User's earned badge with full badge info */
@@ -2095,6 +2121,11 @@ export interface EarnedBadge {
   iconUrl: string | null;
   badgeType: string;
   requirementValue: number | null;
+  /** Optional localization data for i18n translation of title and description */
+  localization?: {
+    title?: LocalizedHint;
+    description?: LocalizedHint;
+  };
 }
 
 /**
@@ -2177,6 +2208,11 @@ export interface NewBadge {
   badgeKey: string;
   title: string;
   description: string | null;
+  /** Optional localization data for i18n translation of title and description */
+  localization?: {
+    title?: LocalizedHint;
+    description?: LocalizedHint;
+  };
 }
 
 /**
