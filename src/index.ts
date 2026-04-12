@@ -13,7 +13,10 @@ export type {
   PaginationOptions,
 } from '@sudobility/types';
 
+export { SubscriptionPlatform } from '@sudobility/types';
+
 import type { Optional } from '@sudobility/types';
+import type { SubscriptionPlatform } from '@sudobility/types';
 
 // =============================================================================
 // Entity Types (database models)
@@ -380,8 +383,30 @@ export interface BoardCountsData {
   withoutTechniques: number;
 }
 
+/** Response data for /api/v1/boards/counts/by-technique - map of technique ID to board count */
+export type BoardCountsByTechniqueData = Record<number, number>;
+
 /** Response data for /api/v1/examples/counts - map of technique ID to count */
 export type ExampleCountsData = Record<string, number>;
+
+/** Response data for /api/v1/boards/update-stats */
+export interface UpdateStatsData {
+  levels: Record<number, number>;
+  techniques: Record<number, number>;
+}
+
+/** Response data for /api/v1/ocr/extract */
+export interface OCRExtractData {
+  board: SolverBoard;
+  confidence: number;
+  digitCount: number;
+}
+
+/** Response data for DELETE /api/v1/practices (bulk delete) */
+export interface PracticesBulkDeleteData {
+  deleted: number;
+  message: string;
+}
 
 // =============================================================================
 // Response Helper Types
@@ -430,7 +455,15 @@ export interface RevenueCatEntitlement {
 
 export interface SubscriptionResult {
   hasSubscription: boolean;
-  entitlements: RevenueCatEntitlement[];
+  entitlements: string[];
+  subscriptionStartedAt: string | null;
+  platform: SubscriptionPlatform | null;
+  productIdentifier: string | null;
+  expiresDate: string | null;
+  sandbox: boolean;
+  store: string | null;
+  willRenew: boolean;
+  managementUrl: string | null;
 }
 
 // =============================================================================
