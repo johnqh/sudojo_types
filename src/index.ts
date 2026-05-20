@@ -550,7 +550,7 @@ export interface SolverHintCell {
 }
 
 /** Link type for chain visualization */
-export type SolverLinkType = 'strong' | 'weak';
+export type SolverLinkType = 'strong' | 'weak' | 'conflict';
 
 /** A link between two cells in a chain */
 export interface SolverLink {
