@@ -408,6 +408,13 @@ export interface PracticesBulkDeleteData {
   message: string;
 }
 
+/** Response data for POST /api/v1/practices/regenerate-hints */
+export interface PracticesRegenerateHintsData {
+  updated: number;
+  failed: number;
+  total: number;
+}
+
 // =============================================================================
 // Response Helper Types
 // =============================================================================
