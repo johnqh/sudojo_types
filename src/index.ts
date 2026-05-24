@@ -411,6 +411,7 @@ export interface PracticesBulkDeleteData {
 /** Response data for POST /api/v1/practices/regenerate-hints */
 export interface PracticesRegenerateHintsData {
   updated: number;
+  deleted: number;
   failed: number;
   total: number;
 }
