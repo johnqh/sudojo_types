@@ -408,12 +408,19 @@ export interface PracticesBulkDeleteData {
   message: string;
 }
 
+/** A single practice that failed to regenerate */
+export interface PracticeRegenerateFailure {
+  uuid: string;
+  technique: number | null;
+  reason: string;
+}
+
 /** Response data for POST /api/v1/practices/regenerate-hints */
 export interface PracticesRegenerateHintsData {
   updated: number;
-  deleted: number;
   failed: number;
   total: number;
+  failures: PracticeRegenerateFailure[];
 }
 
 // =============================================================================
