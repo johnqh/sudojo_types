@@ -232,6 +232,34 @@ export interface Challenge {
   updated_at: Date | null;
 }
 
+/**
+ * A curated Sudoku community or forum, specific to a language.
+ * Unlike other entities, communities are entirely different records per language
+ * rather than translated versions of the same record.
+ */
+export interface Community {
+  /** Unique identifier (UUID v4) */
+  uuid: string;
+  /** ISO 639-1 language code (e.g., "en", "ja", "zh-hant") */
+  language_code: string;
+  /** Community name in the native language */
+  name: string;
+  /** Community name in English, if available */
+  name_english: string | null;
+  /** Short description in the native language */
+  description: string;
+  /** URL link to the community */
+  url: string;
+  /** Platform type (e.g., "forum", "discord", "reddit", "telegram", "facebook", "youtube", "website") */
+  platform: string;
+  /** Display order within a language (lower = first) */
+  sort_order: number;
+  /** When this record was created (serialized as ISO string in API responses) */
+  created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
+  updated_at: Date | null;
+}
+
 // =============================================================================
 // Request Body Types
 // =============================================================================
@@ -342,9 +370,34 @@ export interface ChallengeUpdateRequest {
   solution: Optional<string>;
 }
 
+// Community requests
+export interface CommunityCreateRequest {
+  language_code: string;
+  name: string;
+  name_english: Optional<string>;
+  description: string;
+  url: string;
+  platform: string;
+  sort_order: Optional<number>;
+}
+
+export interface CommunityUpdateRequest {
+  language_code?: string;
+  name?: string;
+  name_english?: Optional<string>;
+  description?: string;
+  url?: string;
+  platform?: string;
+  sort_order?: number;
+}
+
 // =============================================================================
 // Query Parameter Types
 // =============================================================================
+
+export interface CommunityQueryParams {
+  language?: string;
+}
 
 export interface TechniqueQueryParams {
   level: Optional<number>;
