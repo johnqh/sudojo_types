@@ -254,6 +254,8 @@ export interface Community {
   platform: string;
   /** Display order within a language (lower = first) */
   sort_order: number;
+  /** URL to the community's icon, logo, or favicon */
+  icon_url: string | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -379,6 +381,7 @@ export interface CommunityCreateRequest {
   url: string;
   platform: string;
   sort_order: Optional<number>;
+  icon_url: Optional<string>;
 }
 
 export interface CommunityUpdateRequest {
@@ -389,6 +392,7 @@ export interface CommunityUpdateRequest {
   url?: string;
   platform?: string;
   sort_order?: number;
+  icon_url?: Optional<string>;
 }
 
 // =============================================================================
