@@ -85,7 +85,7 @@ export interface Technique {
   /** The difficulty level this technique belongs to (1-12), or null if unassigned */
   level: number | null;
   /** The strategy group this technique belongs to, or null if unassigned */
-  strategy_id: number | null;
+  strategy_id?: number | null;
   /** Human-readable technique name (e.g., "Naked Single", "X-Wing") */
   title: string;
   /** URL-friendly slug for routing (e.g., "naked-single") */
