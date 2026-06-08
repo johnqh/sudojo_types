@@ -84,6 +84,8 @@ export interface Technique {
   technique: number;
   /** The difficulty level this technique belongs to (1-12), or null if unassigned */
   level: number | null;
+  /** The strategy group this technique belongs to, or null if unassigned */
+  strategy_id: number | null;
   /** Human-readable technique name (e.g., "Naked Single", "X-Wing") */
   title: string;
   /** URL-friendly slug for routing (e.g., "naked-single") */
@@ -262,6 +264,26 @@ export interface Community {
   updated_at: Date | null;
 }
 
+/**
+ * A strategy grouping related solving techniques by shared algorithmic logic.
+ * Strategies organize the 60 techniques into 17 groups (e.g., Naked Subsets, Wings, Forcing).
+ *
+ * Note: Entity timestamps are `Date | null` in the database model,
+ * but API responses serialize them as ISO 8601 strings.
+ */
+export interface Strategy {
+  /** Auto-increment primary key */
+  strategy: number;
+  /** Unique difficulty ordering value (sequential, used for sorting) */
+  difficulty: number;
+  /** URL-friendly slug for routing (e.g., "naked-subsets", "forcing") */
+  stub: string;
+  /** When this record was created (serialized as ISO string in API responses) */
+  created_at: Date | null;
+  /** When this record was last updated (serialized as ISO string in API responses) */
+  updated_at: Date | null;
+}
+
 // =============================================================================
 // Request Body Types
 // =============================================================================
@@ -293,6 +315,7 @@ export interface TechniqueCreateRequest {
   title: string;
   text: Optional<string>;
   percentage: Optional<number>;
+  strategy_id: Optional<number>;
 }
 
 export interface TechniqueUpdateRequest {
@@ -300,6 +323,7 @@ export interface TechniqueUpdateRequest {
   title: Optional<string>;
   text: Optional<string>;
   percentage: Optional<number>;
+  strategy_id: Optional<number>;
 }
 
 // Learning requests
@@ -393,6 +417,17 @@ export interface CommunityUpdateRequest {
   platform?: string;
   sort_order?: number;
   icon_url?: Optional<string>;
+}
+
+// Strategy requests
+export interface StrategyCreateRequest {
+  difficulty: number;
+  stub: string;
+}
+
+export interface StrategyUpdateRequest {
+  difficulty?: number;
+  stub?: string;
 }
 
 // =============================================================================
