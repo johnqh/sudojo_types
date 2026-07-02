@@ -164,6 +164,13 @@ export interface Board {
    * and {@link addTechnique} to set a technique bit.
    */
   techniques: number | null;
+  /**
+   * Cumulative solving effort: the sum of every solving step's technique score
+   * on a ratio scale where Full House = 1. A finer-grained companion to
+   * {@link level} (which is only the hardest single technique), so two puzzles
+   * at the same level can be ordered by how much work they actually take.
+   */
+  difficulty_score: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -199,6 +206,8 @@ export interface Daily {
    * and {@link addTechnique} to set a technique bit.
    */
   techniques: number | null;
+  /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
+  difficulty_score: number | null;
   /** 81-character puzzle string where '0' represents empty cells */
   board: string;
   /** 81-character solution string with all cells filled */
@@ -224,6 +233,8 @@ export interface Challenge {
   level: number | null;
   /** Numeric difficulty rating (higher = harder) */
   difficulty: number | null;
+  /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
+  difficulty_score: number | null;
   /** 81-character puzzle string where '0' represents empty cells */
   board: string;
   /** 81-character solution string with all cells filled */
@@ -350,6 +361,7 @@ export interface BoardCreateRequest {
   board: string;
   solution: string;
   techniques: Optional<number>;
+  difficulty_score: Optional<number>;
 }
 
 export interface BoardUpdateRequest {
@@ -358,6 +370,7 @@ export interface BoardUpdateRequest {
   board: Optional<string>;
   solution: Optional<string>;
   techniques: Optional<number>;
+  difficulty_score: Optional<number>;
 }
 
 // Daily requests
@@ -366,6 +379,7 @@ export interface DailyCreateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   techniques: Optional<number>;
+  difficulty_score: Optional<number>;
   board: string;
   solution: string;
 }
@@ -375,6 +389,7 @@ export interface DailyUpdateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   techniques: Optional<number>;
+  difficulty_score: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
 }
@@ -384,6 +399,7 @@ export interface ChallengeCreateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   difficulty: Optional<number>;
+  difficulty_score: Optional<number>;
   board: string;
   solution: string;
 }
@@ -392,6 +408,7 @@ export interface ChallengeUpdateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   difficulty: Optional<number>;
+  difficulty_score: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
 }
@@ -869,6 +886,11 @@ export function getSubscriptionOfferId(
 export interface ValidateBoardData {
   /** Difficulty level of the puzzle */
   level: number;
+  /**
+   * Cumulative solving effort: sum of every solving step's technique score
+   * (ratio scale, Full House = 1). 0 for generated puzzles. See {@link Board.difficulty_score}.
+   */
+  difficulty_score: number;
   /** Bitmask of techniques used to solve (for analytics) */
   techniques: number;
   /** Original puzzle (81-char string) */
@@ -2284,6 +2306,8 @@ export interface GameSession {
   board: string;
   /** Difficulty level of the puzzle (1-12) */
   level: number;
+  /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
+  difficultyScore: number;
   /** Whether this is a daily puzzle or a level-based puzzle */
   puzzleType: 'daily' | 'level';
   /** Identifier of the specific puzzle (daily UUID or board UUID), or null */
@@ -2311,6 +2335,8 @@ export interface GameStartRequest {
   level: number;
   /** Bitmask of techniques required to solve (see {@link Board.techniques}) */
   techniques: number;
+  /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
+  difficultyScore?: number;
   /** Whether this is a daily puzzle or a level-based puzzle */
   puzzleType: 'daily' | 'level';
   /** Optional identifier of the specific puzzle (daily UUID or board UUID) */
