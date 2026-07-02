@@ -170,7 +170,7 @@ export interface Board {
    * {@link level} (which is only the hardest single technique), so two puzzles
    * at the same level can be ordered by how much work they actually take.
    */
-  difficulty_score: number | null;
+  difficulty_score?: number | null;
   /** When this record was created (serialized as ISO string in API responses) */
   created_at: Date | null;
   /** When this record was last updated (serialized as ISO string in API responses) */
@@ -207,7 +207,7 @@ export interface Daily {
    */
   techniques: number | null;
   /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
-  difficulty_score: number | null;
+  difficulty_score?: number | null;
   /** 81-character puzzle string where '0' represents empty cells */
   board: string;
   /** 81-character solution string with all cells filled */
@@ -234,7 +234,7 @@ export interface Challenge {
   /** Numeric difficulty rating (higher = harder) */
   difficulty: number | null;
   /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
-  difficulty_score: number | null;
+  difficulty_score?: number | null;
   /** 81-character puzzle string where '0' represents empty cells */
   board: string;
   /** 81-character solution string with all cells filled */
@@ -361,7 +361,7 @@ export interface BoardCreateRequest {
   board: string;
   solution: string;
   techniques: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
 }
 
 export interface BoardUpdateRequest {
@@ -370,7 +370,7 @@ export interface BoardUpdateRequest {
   board: Optional<string>;
   solution: Optional<string>;
   techniques: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
 }
 
 // Daily requests
@@ -379,7 +379,7 @@ export interface DailyCreateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   techniques: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
   board: string;
   solution: string;
 }
@@ -389,7 +389,7 @@ export interface DailyUpdateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   techniques: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
 }
@@ -399,7 +399,7 @@ export interface ChallengeCreateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   difficulty: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
   board: string;
   solution: string;
 }
@@ -408,7 +408,7 @@ export interface ChallengeUpdateRequest {
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
   difficulty: Optional<number>;
-  difficulty_score: Optional<number>;
+  difficulty_score?: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
 }
@@ -890,7 +890,7 @@ export interface ValidateBoardData {
    * Cumulative solving effort: sum of every solving step's technique score
    * (ratio scale, Full House = 1). 0 for generated puzzles. See {@link Board.difficulty_score}.
    */
-  difficulty_score: number;
+  difficulty_score?: number;
   /** Bitmask of techniques used to solve (for analytics) */
   techniques: number;
   /** Original puzzle (81-char string) */
