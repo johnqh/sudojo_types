@@ -1,5 +1,10 @@
 # CLAUDE.md
 
+> **Git policy — never auto-commit or auto-push.** Leave your work in the working tree.
+> Run `git commit`, `git push`, `gh pr create`, or `scripts/push_all.sh` **only when the user
+> explicitly asks in that turn**. Approval for an earlier change does not carry forward, and
+> finishing a task is not permission to commit it.
+
 This file provides context for AI assistants working on this codebase.
 
 ## Project Overview
@@ -217,3 +222,7 @@ Package is published to npm under `@sudobility` scope with public access.
 2. Update any dependent types
 3. Update tests to reflect changes
 4. Run `bun run verify`
+
+## Git Workflow
+
+- Do not use feature branches for code changes. Always stay on the current branch.
