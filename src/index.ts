@@ -157,13 +157,19 @@ export interface Board {
   /**
    * Bitmask of techniques required to solve this puzzle.
    * Each bit corresponds to a {@link TechniqueId} enum value (bit N = technique N).
-   * Uses BigInt internally in utility functions since values can exceed
-   * `Number.MAX_SAFE_INTEGER` for puzzles requiring techniques with IDs >= 53.
    *
-   * Use {@link hasTechnique} to check if a specific technique is present,
-   * and {@link addTechnique} to set a technique bit.
+   * **Lossy as a JS number** once any technique with ID >= 54 is set: JSON
+   * parsing drops the low bits. Read the exact value with
+   * `techniqueBitmaskOf(board)`, which prefers {@link Board.techniques_bitmask}.
    */
   techniques: number | null;
+  /**
+   * The same bitmask as {@link Board.techniques}, as an exact base-10 string
+   * (e.g. `"1152921504606846978"`). `null` when `techniques` is null. Missing
+   * from older API deployments. Parse it with `parseTechniqueBitmask()`, or use
+   * `techniqueBitmaskOf(board)`.
+   */
+  techniques_bitmask?: string | null;
   /**
    * Cumulative solving effort: the sum of every solving step's technique score
    * on a ratio scale where Full House = 1. A finer-grained companion to
@@ -199,13 +205,14 @@ export interface Daily {
   /**
    * Bitmask of techniques required to solve this puzzle.
    * Each bit corresponds to a {@link TechniqueId} enum value (bit N = technique N).
-   * Uses BigInt internally in utility functions since values can exceed
-   * `Number.MAX_SAFE_INTEGER` for puzzles requiring techniques with IDs >= 53.
-   *
-   * Use {@link hasTechnique} to check if a specific technique is present,
-   * and {@link addTechnique} to set a technique bit.
+   * Lossy as a JS number once any ID >= 54 is set; see {@link Board.techniques}.
    */
   techniques: number | null;
+  /**
+   * Exact base-10 string form of {@link Daily.techniques} (`null` when that is
+   * null). Missing from older API deployments. See {@link Board.techniques_bitmask}.
+   */
+  techniques_bitmask?: string | null;
   /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
   difficulty_score?: number | null;
   /** 81-character puzzle string where '0' represents empty cells */
@@ -360,7 +367,13 @@ export interface BoardCreateRequest {
   symmetrical: Optional<boolean>;
   board: string;
   solution: string;
-  techniques: Optional<number>;
+  /**
+   * Technique bitmask as a number or a base-10 string. Send a string (e.g.
+   * `formatTechniqueBitmask(mask)`) whenever any technique ID >= 54 is set:
+   * a JSON number drops the low bits. `sudojo_api` treats `null` as 0 and
+   * rejects `""`, negatives and non-integers.
+   */
+  techniques: Optional<number | string>;
   difficulty_score?: Optional<number>;
 }
 
@@ -369,7 +382,13 @@ export interface BoardUpdateRequest {
   symmetrical: Optional<boolean>;
   board: Optional<string>;
   solution: Optional<string>;
-  techniques: Optional<number>;
+  /**
+   * Technique bitmask as a number or a base-10 string. Send a string (e.g.
+   * `formatTechniqueBitmask(mask)`) whenever any technique ID >= 54 is set:
+   * a JSON number drops the low bits. `sudojo_api` treats `null` as 0 and
+   * rejects `""`, negatives and non-integers.
+   */
+  techniques: Optional<number | string>;
   difficulty_score?: Optional<number>;
 }
 
@@ -378,7 +397,13 @@ export interface DailyCreateRequest {
   date: string;
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
-  techniques: Optional<number>;
+  /**
+   * Technique bitmask as a number or a base-10 string. Send a string (e.g.
+   * `formatTechniqueBitmask(mask)`) whenever any technique ID >= 54 is set:
+   * a JSON number drops the low bits. `sudojo_api` treats `null` as 0 and
+   * rejects `""`, negatives and non-integers.
+   */
+  techniques: Optional<number | string>;
   difficulty_score?: Optional<number>;
   board: string;
   solution: string;
@@ -388,7 +413,13 @@ export interface DailyUpdateRequest {
   date: Optional<string>;
   board_uuid: Optional<string | null>;
   level: Optional<number | null>;
-  techniques: Optional<number>;
+  /**
+   * Technique bitmask as a number or a base-10 string. Send a string (e.g.
+   * `formatTechniqueBitmask(mask)`) whenever any technique ID >= 54 is set:
+   * a JSON number drops the low bits. `sudojo_api` treats `null` as 0 and
+   * rejects `""`, negatives and non-integers.
+   */
+  techniques: Optional<number | string>;
   difficulty_score?: Optional<number>;
   board: Optional<string>;
   solution: Optional<string>;
@@ -469,8 +500,16 @@ export interface BoardQueryParams {
   symmetrical: Optional<boolean>;
   limit: Optional<number>;
   offset: Optional<number>;
-  techniques: Optional<number>;
-  technique_bit: Optional<number>;
+  /**
+   * Exact techniques bitmask to match (0 also matches NULL), as a number or
+   * a base-10 string. Use a string (`formatTechniqueBitmask`) for IDs >= 54.
+   */
+  techniques: Optional<number | string>;
+  /**
+   * Match boards with any of these technique bits set, as a number or a
+   * base-10 string. Use a string (`formatTechniqueBitmask`) for IDs >= 54.
+   */
+  technique_bit: Optional<number | string>;
 }
 
 export interface ChallengeQueryParams {
@@ -625,7 +664,14 @@ export interface SolverBoard {
 /** Area highlight type */
 export type SolverAreaType = 'row' | 'column' | 'block';
 
-/** Color for highlighting */
+/**
+ * Color for highlighting.
+ *
+ * The solver wrapper maps every engine color (`ESudokuColor`, 10 values) to
+ * one of these names. Its `"unknown"` fallback is only reachable for an
+ * out-of-range enum value, which the engine never produces, so it is not
+ * part of this union.
+ */
 export type SolverColor =
   | 'none'
   | 'clear'
@@ -716,23 +762,52 @@ export interface LocalizedHint {
   values: string[];
 }
 
-/** A single hint step for solving */
+/**
+ * A single hint step for solving.
+ *
+ * Describes a step as `sudojo_api` returns it from `/api/v1/solver/solve`
+ * (and stores it in practice/example `hint_data`), which differs from the raw
+ * solver JSON in `localization` (see below).
+ */
 export interface SolverHintStep {
-  /** Name of the solving technique */
+  /**
+   * Name of the solving technique, from the solver's `GetTechniqueTitle()`.
+   * Correction hints use titles such as `"Invalid Entry"` /
+   * `"Invalid Pencilmarks"`, and the autopencil hint uses `"Pencilmarks"`.
+   */
   title: string;
   /** Explanation of the technique (fallback text for debugging) */
   text: string;
-  /** Areas to highlight */
+  /**
+   * Areas to highlight.
+   *
+   * **Wire caveat:** the solver sends `null` (not `[]`) in the synthetic
+   * autopencil hint (`technique: 0`, title `"Pencilmarks"`), and `sudojo_api`
+   * passes it through. Read it as `step.areas ?? []`.
+   */
   areas: SolverHintArea[];
-  /** Cells involved in the hint */
+  /**
+   * Cells involved in the hint.
+   *
+   * **Wire caveat:** `null` in the autopencil hint, like {@link areas}.
+   * Read it as `step.cells ?? []`.
+   */
   cells: SolverHintCell[];
-  /** Optional: Links for chain visualization */
+  /** Optional: Links for chain visualization (omitted when empty) */
   links?: SolverLink[];
-  /** Optional: Cell groups for pattern visualization */
+  /** Optional: Cell groups for pattern visualization (omitted when empty) */
   groups?: SolverCellGroup[];
   /** Optional: Primary digit for single-digit techniques (1-9) */
   digit?: number;
-  /** Optional: Localization data for i18n translation of title and text */
+  /**
+   * Optional: Localization data for i18n translation of title and text.
+   *
+   * This is the shape `sudojo_api` produces. The raw solver sends a flat
+   * {@link LocalizedHint} (`{stringKey, values}`), and `sudojo_api` rewraps it
+   * as `text` and adds a `title` key whenever `technique > 0`. Hints with
+   * `technique: 0` are not rewrapped, but the solver emits no localization
+   * for them.
+   */
   localization?: {
     title?: LocalizedHint;
     text?: LocalizedHint;
@@ -746,8 +821,12 @@ export interface SolverHintStep {
 export interface SolverHints {
   /**
    * The technique enum value used for this hint.
-   * Matches C++ SudokuTechnique enum (e.g., 1=NAKED_SINGLE, 2=HIDDEN_SINGLE).
-   * Set to 0 if no technique is involved (e.g., "turn on autopencil" hint).
+   * Matches the solver's `SudokuTechnique` enum and {@link TechniqueId}
+   * (e.g., 1 = FULL_HOUSE, 2 = HIDDEN_SINGLE, 3 = NAKED_SINGLE).
+   *
+   * Set to 0 when no technique is involved: the "turn on autopencil" hint and
+   * the "Invalid Entry" / "Invalid Pencilmarks" correction hints.
+   * {@link TechniqueId} has no 0 member, so this stays a plain `number`.
    */
   technique: number;
   /**
@@ -755,6 +834,16 @@ export interface SolverHints {
    * Set to 0 if no technique is involved.
    */
   level: number;
+  /**
+   * Solving effort for this hint's technique on the solver's ratio scale
+   * (Full House = 1). Set to 0 if no technique is involved.
+   *
+   * The solver always sends it and `sudojo_api` passes it through. It is
+   * optional here because it was added after this type was published, and
+   * older stored `hint_data` may lack it. See {@link Board.difficulty_score}
+   * for the per-board sum.
+   */
+  difficulty_score?: number;
   /** Hint steps with explanations and visualizations */
   steps: SolverHintStep[];
 }
@@ -781,6 +870,58 @@ export interface SolveData {
   hints: SolverHints;
   /** Points earned for using this hint (only present if user has active session) */
   points?: HintPointsEarned;
+}
+
+/**
+ * Error codes in the raw solver envelope (C# `ErrorCode` in
+ * `sudojo_solver/SudokuApi/Models/ResultModels.cs`).
+ *
+ * The solver serializes `code` as an **integer**: its `[EnumMember]` string
+ * names (`"cannot_solve"`, ...) are not used because no `StringEnumConverter`
+ * is registered.
+ */
+export const SOLVER_ERROR_CODES = {
+  /** Invalid request parameters, exceptions, unexpected engine results */
+  UNKNOWN: 0,
+  /** Auto pencilmarks required (declared by the solver, not currently emitted) */
+  AUTO_PENCILMARKS_REQUIRED: 1,
+  /** No solution, or the solver could not finish */
+  CANNOT_SOLVE: 2,
+  /** Brute force found more than one solution */
+  MULTIPLE_SOLUTIONS: 3,
+} as const;
+
+/** Integer error code in the raw solver envelope. See {@link SOLVER_ERROR_CODES}. */
+export type SolverErrorCode =
+  (typeof SOLVER_ERROR_CODES)[keyof typeof SOLVER_ERROR_CODES];
+
+/** Error payload in the raw solver envelope (C# `ErrorPayload`). */
+export interface SolverErrorPayload {
+  /** Integer error code (not a string). See {@link SOLVER_ERROR_CODES}. */
+  code: SolverErrorCode;
+  /** Human-readable error message */
+  message: string;
+}
+
+/**
+ * Raw envelope returned by the solver's `/api/solve`, `/api/validate` and
+ * `/api/generate` (C# `SolveResult` / `ValidateResult`).
+ *
+ * Every outcome, including bad input, is HTTP 200 with this envelope.
+ * Only `sudojo_api` sees it: it rewraps success as `successResponse(data)` and
+ * failure as `errorResponse("<code>: <message>")`, so clients never receive
+ * `SolverErrorPayload`.
+ *
+ * For `/solve`, the raw `data.hints.steps[].localization` is a flat
+ * {@link LocalizedHint}, not the `{text, title}` shape in {@link SolverHintStep}.
+ */
+export interface SolverResult<T> {
+  /** Whether the solver produced data */
+  success: boolean;
+  /** Error details when `success` is false, otherwise null */
+  error: SolverErrorPayload | null;
+  /** Payload when `success` is true, otherwise null */
+  data: T | null;
 }
 
 // =============================================================================
@@ -889,13 +1030,29 @@ export interface ValidateBoardData {
   /**
    * Cumulative solving effort: sum of every solving step's technique score
    * (ratio scale, Full House = 1). 0 for generated puzzles. See {@link Board.difficulty_score}.
+   *
+   * The solver always sends it and `sudojo_api` passes it through. It stays
+   * optional for back-compat, because it was added after this type was published.
    */
   difficulty_score?: number;
-  /** Bitmask of techniques used to solve (for analytics) */
+  /**
+   * Bitmask of techniques used to solve (for analytics). The solver sends a
+   * C# `ulong`, so this is lossy as a JS number once any ID >= 54 is set.
+   */
   techniques: number;
+  /**
+   * The same bitmask as an exact base-10 string (the solver's
+   * `techniques_bitmask`). Missing from older solver/API deployments.
+   * Use `techniqueBitmaskOf(board)`.
+   */
+  techniques_bitmask?: string;
   /** Original puzzle (81-char string) */
   original: string;
-  /** Puzzle solution (81-char string) */
+  /**
+   * Solver's solution as an 81-char string. It holds digits **only at the
+   * originally-empty cells**; given cells are `'0'`. To get the full grid,
+   * merge it with `original`: `getMergedBoardState(original, solution)`.
+   */
   solution: string;
 }
 
@@ -918,6 +1075,11 @@ export interface GenerateData {
 /**
  * Technique IDs matching the solver engine's SudokuTechnique enum.
  * Used as bitfield values in boards.techniques and technique_examples.techniques_bitfield.
+ *
+ * There is intentionally no 0 member. The engine's `UNKNOWN_TECHNIQUE = 0`
+ * appears on the wire only as {@link SolverHints.technique} `0` (autopencil and
+ * correction hints). Adding it here would change {@link ALL_TECHNIQUE_IDS} and
+ * `Object.values(TechniqueId)` for every consumer.
  */
 export enum TechniqueId {
   FULL_HOUSE = 1,
@@ -993,10 +1155,13 @@ export const ALL_TECHNIQUE_IDS: TechniqueId[] = Object.values(
  *
  * Uses BigInt internally to support techniques >= 32, then converts to Number.
  *
- * **Precision warning:** Safe for technique IDs < 53 (since 2^52 is within
- * `Number.MAX_SAFE_INTEGER`). For IDs >= 53, the Number conversion may lose
- * precision. Currently all defined techniques (1-60) include IDs up to 60,
- * so IDs 53-60 may produce imprecise results when converted to Number.
+ * **Precision note:** a single bit (2^n) is always exact as a Number, so this
+ * function never loses precision. Precision loss only affects combined masks:
+ * because bit 0 is never set, a mask stays exact through bit 53 and can drop
+ * low bits once any technique with ID >= 54 is included.
+ *
+ * For combined masks, use the exact BigInt helpers instead, such as
+ * {@link techniqueIdsToBitmask} and {@link hasTechniqueInBitmask}.
  *
  * @param techniqueId - The technique ID from {@link TechniqueId} enum
  * @returns The bit value as a number (1 << techniqueId)
@@ -1008,6 +1173,10 @@ export function techniqueToBit(techniqueId: TechniqueId): number {
 /**
  * Check if a technique is present in a bitfield.
  * Uses BigInt internally to support techniques >= 32.
+ *
+ * @deprecated The `number` input is already lossy once any ID >= 54 is set,
+ * so this can answer wrongly for low bits. Use
+ * `hasTechniqueInBitmask(techniqueBitmaskOf(board), id)` instead.
  *
  * @param bitfield - The techniques bitmask (from {@link Board.techniques} or {@link Daily.techniques})
  * @param techniqueId - The technique ID to check
@@ -1027,7 +1196,12 @@ export function hasTechnique(
  *
  * **Precision warning:** The result is converted back to Number, which may
  * lose precision if the resulting bitfield exceeds `Number.MAX_SAFE_INTEGER`
- * (i.e., when techniques with IDs >= 53 are included).
+ * with low bits set. Since bit 0 is never set, that happens once techniques
+ * with IDs >= 54 are included.
+ *
+ * @deprecated Lossy once any ID >= 54 is set. Build exact masks with
+ * `techniqueIdsToBitmask(ids)` (or `mask | techniqueIdsToBitmask([id])`) and
+ * send them as `formatTechniqueBitmask(mask)`.
  *
  * @param bitfield - The current techniques bitmask
  * @param techniqueId - The technique ID to add
@@ -1039,6 +1213,163 @@ export function addTechnique(
 ): number {
   const bit = BigInt(1) << BigInt(techniqueId);
   return Number(BigInt(bitfield) | bit);
+}
+
+// -----------------------------------------------------------------------------
+// Exact (BigInt) technique bitmasks
+//
+// Bitmasks can need up to 61 bits (technique 60), which a JS number cannot hold
+// exactly. APIs send a companion base-10 string (`techniques_bitmask`,
+// `techniques_bitfield_bitmask`) next to each numeric field. Parse it into a
+// `bigint` here, do all bit work in `bigint`, and format it back to a string
+// to send.
+// -----------------------------------------------------------------------------
+
+/** Base-10, non-negative, digits only: no sign, spaces, exponent or hex. */
+const TECHNIQUE_BITMASK_PATTERN = /^\d+$/;
+
+function assertTechniqueBitmask(mask: bigint): void {
+  if (mask < 0n) {
+    throw new RangeError(
+      `Invalid technique bitmask: ${mask} (must be non-negative)`
+    );
+  }
+}
+
+function techniqueIdBit(techniqueId: TechniqueId): bigint {
+  if (!Number.isInteger(techniqueId) || techniqueId < 0) {
+    throw new RangeError(
+      `Invalid technique id: ${techniqueId} (must be a non-negative integer)`
+    );
+  }
+  return 1n << BigInt(techniqueId);
+}
+
+/**
+ * Parse a technique bitmask from the wire into an exact `bigint`.
+ *
+ * - `string`: the exact base-10 form (`techniques_bitmask`), e.g.
+ *   `"1152921504606846978"`.
+ * - `number`: fallback for older APIs that only send the numeric field. The
+ *   value is taken as-is, so it is exactly as lossy as it already was.
+ * - `bigint`: returned unchanged.
+ * - `null` / `undefined`: `0n` (no techniques).
+ *
+ * @throws RangeError for negative values, non-integers, and strings that are
+ *   not plain base-10 digits (signs, spaces, `1e3`, `0x10`, empty).
+ */
+export function parseTechniqueBitmask(
+  value: string | number | bigint | null | undefined
+): bigint {
+  if (value === null || value === undefined) return 0n;
+  if (typeof value === 'bigint') {
+    assertTechniqueBitmask(value);
+    return value;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isInteger(value) || value < 0) {
+      throw new RangeError(
+        `Invalid technique bitmask: ${value} (must be a non-negative integer)`
+      );
+    }
+    return BigInt(value);
+  }
+  if (typeof value === 'string' && TECHNIQUE_BITMASK_PATTERN.test(value)) {
+    return BigInt(value);
+  }
+  throw new RangeError(
+    `Invalid technique bitmask: ${JSON.stringify(value)} (expected a base-10 digit string)`
+  );
+}
+
+/**
+ * Anything that carries a technique bitmask: a numeric field plus its
+ * optional exact string companion. Covers {@link Board}, {@link Daily},
+ * {@link ValidateBoardData} (`techniques`) and {@link TechniqueExample}
+ * (`techniques_bitfield`).
+ */
+export interface TechniqueBitmaskSource {
+  /** Numeric bitmask (lossy once any ID >= 54 is set) */
+  techniques?: number | null;
+  /** Exact base-10 string form of `techniques` */
+  techniques_bitmask?: string | null;
+  /** Numeric bitfield on technique examples (lossy once any ID >= 54 is set) */
+  techniques_bitfield?: number | null;
+  /** Exact base-10 string form of `techniques_bitfield` */
+  techniques_bitfield_bitmask?: string | null;
+}
+
+/**
+ * Read the exact technique bitmask from an API object.
+ *
+ * Prefers the exact `<field>_bitmask` string, and falls back to the numeric
+ * field for older APIs that don't send it. Returns `0n` when both are null
+ * or missing.
+ *
+ * @example
+ * ```typescript
+ * const mask = techniqueBitmaskOf(board); // bigint
+ * hasTechniqueInBitmask(mask, TechniqueId.GROUPED_X_CYCLES);
+ * ```
+ *
+ * @throws RangeError if a present `<field>_bitmask` string is malformed.
+ */
+export function techniqueBitmaskOf(source: TechniqueBitmaskSource): bigint {
+  const exact = source.techniques_bitmask ?? source.techniques_bitfield_bitmask;
+  if (exact !== null && exact !== undefined) {
+    return parseTechniqueBitmask(exact);
+  }
+  return parseTechniqueBitmask(source.techniques ?? source.techniques_bitfield);
+}
+
+/**
+ * Check if a technique's bit is set in an exact bitmask.
+ *
+ * @throws RangeError for a negative mask or an invalid technique id.
+ */
+export function hasTechniqueInBitmask(
+  mask: bigint,
+  techniqueId: TechniqueId
+): boolean {
+  assertTechniqueBitmask(mask);
+  return (mask & techniqueIdBit(techniqueId)) !== 0n;
+}
+
+/**
+ * List the {@link TechniqueId}s set in a bitmask, in ascending order.
+ * Bits that are not technique ids (e.g. bit 0 or bits above 60) are ignored.
+ *
+ * @throws RangeError for a negative mask.
+ */
+export function techniqueIdsFromBitmask(mask: bigint): TechniqueId[] {
+  assertTechniqueBitmask(mask);
+  return ALL_TECHNIQUE_IDS.filter((id) => (mask & (1n << BigInt(id))) !== 0n);
+}
+
+/**
+ * Build an exact bitmask from technique ids (bit N = technique N).
+ *
+ * @throws RangeError for a negative or non-integer id.
+ */
+export function techniqueIdsToBitmask(
+  techniqueIds: Iterable<TechniqueId>
+): bigint {
+  let mask = 0n;
+  for (const id of techniqueIds) {
+    mask |= techniqueIdBit(id);
+  }
+  return mask;
+}
+
+/**
+ * Format an exact bitmask as the base-10 string used on the wire
+ * (`techniques_bitmask`). It round-trips through {@link parseTechniqueBitmask}.
+ *
+ * @throws RangeError for a negative mask.
+ */
+export function formatTechniqueBitmask(mask: bigint): string {
+  assertTechniqueBitmask(mask);
+  return mask.toString(10);
 }
 
 // =============================================================================
@@ -1053,8 +1384,16 @@ export interface TechniqueExample {
   pencilmarks: string | null;
   /** Solution for reference */
   solution: string;
-  /** Bitfield of all techniques applicable at this board state */
+  /**
+   * Bitfield of all techniques applicable at this board state.
+   * Lossy as a JS number once any ID >= 54 is set.
+   */
   techniques_bitfield: number;
+  /**
+   * The same bitfield as an exact base-10 string. Missing from older API
+   * deployments. Use `techniqueBitmaskOf(example)`.
+   */
+  techniques_bitfield_bitmask?: string;
   /** Primary technique (the one solver would use first) */
   primary_technique: number;
   /** Hint data as JSON string */
@@ -1068,7 +1407,11 @@ export interface TechniqueExampleCreateRequest {
   board: string;
   pencilmarks: Optional<string>;
   solution: string;
-  techniques_bitfield: number;
+  /**
+   * Technique bitfield (at least one bit set) as a number or a base-10
+   * string. Send a string (`formatTechniqueBitmask`) for IDs >= 54.
+   */
+  techniques_bitfield: number | string;
   primary_technique: number;
   hint_data: Optional<string>;
   source_board_uuid: Optional<string | null>;
@@ -1078,7 +1421,11 @@ export interface TechniqueExampleUpdateRequest {
   board: Optional<string>;
   pencilmarks: Optional<string>;
   solution: Optional<string>;
-  techniques_bitfield: Optional<number>;
+  /**
+   * Technique bitfield (at least one bit set) as a number or a base-10
+   * string. Send a string (`formatTechniqueBitmask`) for IDs >= 54.
+   */
+  techniques_bitfield: Optional<number | string>;
   primary_technique: Optional<number>;
   hint_data: Optional<string>;
   source_board_uuid: Optional<string | null>;
@@ -1850,6 +2197,12 @@ export function hasPencilmarkContent(pencilmarks: string): boolean {
 /**
  * Map from TechniqueId to display title.
  * Covers all defined technique IDs (1-60).
+ *
+ * These are the display titles: they match `sudojo_api`'s seeded
+ * `techniques.title` and the `/technique.<title>.svg` icon file names used by
+ * {@link getTechniqueIconUrl}. They equal the solver's hint-step `title` for
+ * every technique except AIC, where this is `'AIC'` and the solver says
+ * `'Alternating Inference Chain'`. Do not compare them to `step.title`.
  */
 const TECHNIQUE_ID_TO_TITLE: Record<TechniqueId, string> = {
   [TechniqueId.FULL_HOUSE]: 'Full House',
@@ -1916,6 +2269,10 @@ const TECHNIQUE_ID_TO_TITLE: Record<TechniqueId, string> = {
 
 /**
  * Get the technique title/name from its ID.
+ *
+ * Returns the display title, which is not always the solver's hint-step
+ * `title`. For example, AIC returns `'AIC'`, while the solver uses
+ * `'Alternating Inference Chain'`.
  *
  * @param techniqueId - The technique ID number
  * @returns The technique title, or "Technique {id}" if unknown
@@ -2197,7 +2554,11 @@ export interface SolveOptions {
   autoPencilmarks?: boolean;
   /** Comma-separated pencilmarks string (81 elements) */
   pencilmarks?: string;
-  /** Optional technique filters (legacy) */
+  /**
+   * Optional technique filters (legacy).
+   * @deprecated Ignored: neither `sudojo_api` nor the solver reads a
+   * `filters` parameter. Use {@link SolveOptions.techniques}.
+   */
   filters?: string;
   /** Optional comma-delimited list of technique numbers to filter solving (e.g., "1,2,3") */
   techniques?: string;
@@ -2210,7 +2571,12 @@ export interface SolveOptions {
 export interface ValidateOptions {
   /** 81-character puzzle string */
   original: string;
-  /** Whether auto-pencilmarks are enabled (for iterative validation) */
+  /**
+   * Whether auto-pencilmarks are enabled (for iterative validation).
+   * @deprecated Ignored: `sudojo_client` does not send it, and the solver's
+   * `/validate` does not accept it. (`/validate` accepts `brutalForce`, which
+   * this type does not expose yet.)
+   */
   autoPencilmarks?: boolean;
 }
 
@@ -2333,8 +2699,12 @@ export interface GameStartRequest {
   solution: string;
   /** Difficulty level of the puzzle (1-12), used for point calculation */
   level: number;
-  /** Bitmask of techniques required to solve (see {@link Board.techniques}) */
-  techniques: number;
+  /**
+   * Bitmask of techniques required to solve (see {@link Board.techniques}),
+   * as a number or a base-10 string. Send a string (e.g.
+   * `formatTechniqueBitmask(mask)`) whenever any technique ID >= 54 is set.
+   */
+  techniques: number | string;
   /** Cumulative solving effort (sum of per-step technique scores). See {@link Board.difficulty_score}. */
   difficultyScore?: number;
   /** Whether this is a daily puzzle or a level-based puzzle */

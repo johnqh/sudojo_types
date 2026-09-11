@@ -30,9 +30,19 @@ import {
   getTechniqueIconUrl,
   TechniqueId,
   // Bitfield utilities
+  ALL_TECHNIQUE_IDS,
   techniqueToBit,
   hasTechnique,
   addTechnique,
+  // BigInt bitmask utilities
+  parseTechniqueBitmask,
+  techniqueBitmaskOf,
+  hasTechniqueInBitmask,
+  techniqueIdsFromBitmask,
+  techniqueIdsToBitmask,
+  formatTechniqueBitmask,
+  type TechniqueBitmaskSource,
+  type TechniqueExample,
   // UUID utilities
   isValidUUID,
   validateUUID,
@@ -47,6 +57,16 @@ import {
   formatTime,
   parseTime,
   formatDigits,
+  // Solver envelope
+  SOLVER_ERROR_CODES,
+  type SolverErrorCode,
+  type SolverErrorPayload,
+  type SolverResult,
+  type SolverHints,
+  type SolverHintStep,
+  type SolveData,
+  type ValidateBoardData,
+  type ValidateData,
   type ScrambleConfig,
   type ScrambleResult,
   type Belt,
@@ -63,7 +83,11 @@ import {
   type TechniqueUpdateRequest,
   type LearningCreateRequest,
   type BoardCreateRequest,
+  type BoardUpdateRequest,
   type DailyCreateRequest,
+  type DailyUpdateRequest,
+  type TechniqueExampleCreateRequest,
+  type TechniqueExampleUpdateRequest,
   type ChallengeCreateRequest,
   type TechniqueQueryParams,
   type LearningQueryParams,
@@ -287,7 +311,9 @@ describe('Entity Types', () => {
 
     expectTypeOf(request.board).toBeString();
     expectTypeOf(request.level).toBeNumber();
-    expectTypeOf(request.techniques).toBeNumber();
+    expectTypeOf<GameStartRequest['techniques']>().toEqualTypeOf<
+      number | string
+    >();
     expectTypeOf(request.puzzleType).toEqualTypeOf<'daily' | 'level'>();
   });
 
@@ -428,7 +454,9 @@ describe('Request Types use Optional<T>', () => {
     };
 
     expectTypeOf(request.board_uuid).toEqualTypeOf<Optional<string | null>>();
-    expectTypeOf(request.techniques).toEqualTypeOf<Optional<number>>();
+    expectTypeOf<DailyCreateRequest['techniques']>().toEqualTypeOf<
+      Optional<number | string>
+    >();
   });
 
   it('ChallengeCreateRequest should use Optional correctly', () => {
@@ -513,6 +541,83 @@ describe('Response Types', () => {
     expectTypeOf(health.name).toBeString();
     expectTypeOf(health.version).toBeString();
     expectTypeOf(health.status).toBeString();
+  });
+});
+
+// =============================================================================
+// Solver Type Tests
+// =============================================================================
+
+describe('Solver Types', () => {
+  describe('SOLVER_ERROR_CODES', () => {
+    it('matches the C# ErrorCode integer values', () => {
+      expect(SOLVER_ERROR_CODES).toEqual({
+        UNKNOWN: 0,
+        AUTO_PENCILMARKS_REQUIRED: 1,
+        CANNOT_SOLVE: 2,
+        MULTIPLE_SOLUTIONS: 3,
+      });
+    });
+
+    it('SolverErrorCode is the integer union 0-3', () => {
+      expectTypeOf<SolverErrorCode>().toEqualTypeOf<0 | 1 | 2 | 3>();
+    });
+  });
+
+  it('SolverResult models the raw solver envelope with integer codes', () => {
+    const failure: SolverResult<ValidateData> = JSON.parse(
+      '{"success":false,"error":{"code":3,"message":"Multiple possible solutions"},"data":null}'
+    );
+
+    expect(failure.error?.code).toBe(SOLVER_ERROR_CODES.MULTIPLE_SOLUTIONS);
+    expectTypeOf(failure.success).toBeBoolean();
+    expectTypeOf(failure.error).toEqualTypeOf<SolverErrorPayload | null>();
+    expectTypeOf(failure.data).toEqualTypeOf<ValidateData | null>();
+    expectTypeOf<SolverErrorPayload['code']>().toEqualTypeOf<SolverErrorCode>();
+    expectTypeOf<SolverErrorPayload['message']>().toBeString();
+  });
+
+  it('SolverHints has optional difficulty_score', () => {
+    const hints: SolverHints = {
+      technique: 1,
+      level: 1,
+      difficulty_score: 1,
+      steps: [],
+    };
+    const legacy: SolverHints = { technique: 1, level: 1, steps: [] };
+
+    expect(legacy.difficulty_score).toBeUndefined();
+    expectTypeOf(hints.difficulty_score).toEqualTypeOf<number | undefined>();
+    expectTypeOf(hints.technique).toBeNumber();
+  });
+
+  it('SolverHintStep keeps areas/cells as arrays and nested localization', () => {
+    expectTypeOf<SolverHintStep['areas']>().toBeArray();
+    expectTypeOf<SolverHintStep['cells']>().toBeArray();
+    expectTypeOf<NonNullable<SolverHintStep['localization']>>().toHaveProperty(
+      'text'
+    );
+    expectTypeOf<NonNullable<SolverHintStep['localization']>>().toHaveProperty(
+      'title'
+    );
+  });
+
+  it('SolveData still allows the proxy-added points field', () => {
+    expectTypeOf<SolveData['points']>().toEqualTypeOf<
+      { points: number; techniqueLevel: number } | undefined
+    >();
+  });
+
+  it('ValidateBoardData keeps difficulty_score optional', () => {
+    const board: ValidateBoardData = {
+      level: 3,
+      techniques: 6,
+      original: '0'.repeat(81),
+      solution: '0'.repeat(81),
+    };
+
+    expect(board.difficulty_score).toBeUndefined();
+    expectTypeOf(board.difficulty_score).toEqualTypeOf<number | undefined>();
   });
 });
 
@@ -1254,6 +1359,12 @@ describe('Solver Utilities', () => {
       expect(getTechniqueNameById(999)).toBe('Technique 999');
     });
 
+    it('should return the display title for AIC, not the solver step title', () => {
+      // Matches sudojo_api's seeded title and the technique.aic.svg icon;
+      // the solver's step title is 'Alternating Inference Chain'.
+      expect(getTechniqueNameById(TechniqueId.AIC)).toBe('AIC');
+    });
+
     it('should handle all defined TechniqueId values', () => {
       // Verify each TechniqueId has a name
       Object.values(TechniqueId)
@@ -1371,6 +1482,312 @@ describe('Bitfield Utilities', () => {
       expect(hasTechnique(bitfield, TechniqueId.ALS_XZ)).toBe(true);
       expect(hasTechnique(bitfield, TechniqueId.X_CYCLES)).toBe(true);
       expect(hasTechnique(bitfield, TechniqueId.FULL_HOUSE)).toBe(false);
+    });
+
+    it('stays exact through ID 53 and drops low bits once ID >= 54 is set', () => {
+      let upTo53 = 0;
+      for (const id of ALL_TECHNIQUE_IDS.filter((id) => id <= 53)) {
+        upTo53 = addTechnique(upTo53, id);
+      }
+      expect(upTo53).toBeGreaterThan(Number.MAX_SAFE_INTEGER);
+      expect(hasTechnique(upTo53, TechniqueId.FULL_HOUSE)).toBe(true);
+      expect(hasTechnique(upTo53, TechniqueId.SASHIMI_JELLYFISH)).toBe(true);
+
+      const with54 = addTechnique(
+        techniqueToBit(TechniqueId.FULL_HOUSE),
+        TechniqueId.HIDDEN_UNIQUE_RECTANGLE
+      );
+      expect(hasTechnique(with54, TechniqueId.HIDDEN_UNIQUE_RECTANGLE)).toBe(
+        true
+      );
+      expect(hasTechnique(with54, TechniqueId.FULL_HOUSE)).toBe(false);
+    });
+  });
+});
+
+// =============================================================================
+// BigInt Technique Bitmask Tests
+// =============================================================================
+
+/** Bit 60 (Grouped X-Cycles) + bit 1 (Full House): needs 61 bits. */
+const HIGH_MASK = (1n << 60n) | (1n << 1n);
+const HIGH_MASK_STRING = '1152921504606846978';
+
+describe('BigInt Technique Bitmask Utilities', () => {
+  it('HIGH_MASK is not representable as a JS number', () => {
+    expect(HIGH_MASK.toString()).toBe(HIGH_MASK_STRING);
+    expect(BigInt(Number(HIGH_MASK))).not.toBe(HIGH_MASK);
+  });
+
+  describe('parseTechniqueBitmask', () => {
+    it('parses a base-10 string exactly, beyond 2^53', () => {
+      expect(parseTechniqueBitmask(HIGH_MASK_STRING)).toBe(HIGH_MASK);
+      expect(parseTechniqueBitmask('0')).toBe(0n);
+    });
+
+    it('falls back to a number from older APIs', () => {
+      expect(parseTechniqueBitmask(42)).toBe(42n);
+      expect(parseTechniqueBitmask(0)).toBe(0n);
+      // Already rounded by JSON.parse upstream; kept exactly as lossy as before.
+      expect(parseTechniqueBitmask(2 ** 60)).toBe(1n << 60n);
+    });
+
+    it('accepts a bigint', () => {
+      expect(parseTechniqueBitmask(HIGH_MASK)).toBe(HIGH_MASK);
+    });
+
+    it('returns 0n for null and undefined', () => {
+      expect(parseTechniqueBitmask(null)).toBe(0n);
+      expect(parseTechniqueBitmask(undefined)).toBe(0n);
+    });
+
+    it.each([
+      ['negative number', -1],
+      ['fractional number', 1.5],
+      ['NaN', NaN],
+      ['Infinity', Infinity],
+      ['negative string', '-1'],
+      ['fractional string', '1.5'],
+      ['exponent string', '1e3'],
+      ['hex string', '0x10'],
+      ['empty string', ''],
+      ['padded string', ' 12'],
+      ['word', 'abc'],
+      ['negative bigint', -1n],
+    ] as const)('rejects a %s with a clear error', (_label, value) => {
+      expect(() => parseTechniqueBitmask(value)).toThrow(/technique bitmask/i);
+    });
+  });
+
+  describe('formatTechniqueBitmask', () => {
+    it('round-trips a 61-bit mask exactly', () => {
+      expect(formatTechniqueBitmask(HIGH_MASK)).toBe(HIGH_MASK_STRING);
+      expect(parseTechniqueBitmask(formatTechniqueBitmask(HIGH_MASK))).toBe(
+        HIGH_MASK
+      );
+      expect(formatTechniqueBitmask(0n)).toBe('0');
+    });
+
+    it('rejects a negative mask', () => {
+      expect(() => formatTechniqueBitmask(-2n)).toThrow(/technique bitmask/i);
+    });
+  });
+
+  describe('techniqueIdsToBitmask / techniqueIdsFromBitmask', () => {
+    it('builds the exact mask for ids 1 and 60', () => {
+      expect(
+        techniqueIdsToBitmask([
+          TechniqueId.GROUPED_X_CYCLES,
+          TechniqueId.FULL_HOUSE,
+        ])
+      ).toBe(HIGH_MASK);
+      expect(techniqueIdsToBitmask([])).toBe(0n);
+    });
+
+    it('lists the ids in ascending order', () => {
+      expect(techniqueIdsFromBitmask(HIGH_MASK)).toEqual([
+        TechniqueId.FULL_HOUSE,
+        TechniqueId.GROUPED_X_CYCLES,
+      ]);
+      expect(techniqueIdsFromBitmask(0n)).toEqual([]);
+    });
+
+    it('round-trips every technique id', () => {
+      const all = techniqueIdsToBitmask(ALL_TECHNIQUE_IDS);
+      expect(techniqueIdsFromBitmask(all)).toEqual(ALL_TECHNIQUE_IDS);
+      expect(parseTechniqueBitmask(formatTechniqueBitmask(all))).toBe(all);
+    });
+
+    it('ignores bits that are not technique ids', () => {
+      expect(techniqueIdsFromBitmask((1n << 0n) | (1n << 61n) | 2n)).toEqual([
+        TechniqueId.FULL_HOUSE,
+      ]);
+    });
+
+    it('rejects invalid ids and negative masks', () => {
+      expect(() => techniqueIdsToBitmask([1.5 as TechniqueId])).toThrow(
+        /technique id/i
+      );
+      expect(() => techniqueIdsToBitmask([-1 as TechniqueId])).toThrow(
+        /technique id/i
+      );
+      expect(() => techniqueIdsFromBitmask(-1n)).toThrow(/technique bitmask/i);
+    });
+  });
+
+  describe('hasTechniqueInBitmask', () => {
+    it('checks high and low bits exactly', () => {
+      expect(hasTechniqueInBitmask(HIGH_MASK, TechniqueId.FULL_HOUSE)).toBe(
+        true
+      );
+      expect(
+        hasTechniqueInBitmask(HIGH_MASK, TechniqueId.GROUPED_X_CYCLES)
+      ).toBe(true);
+      expect(hasTechniqueInBitmask(HIGH_MASK, TechniqueId.HIDDEN_SINGLE)).toBe(
+        false
+      );
+    });
+
+    it('is correct where the number-based hasTechnique is not', () => {
+      const lossy = Number(HIGH_MASK);
+      expect(hasTechnique(lossy, TechniqueId.FULL_HOUSE)).toBe(false);
+      expect(
+        hasTechniqueInBitmask(
+          parseTechniqueBitmask(HIGH_MASK_STRING),
+          TechniqueId.FULL_HOUSE
+        )
+      ).toBe(true);
+    });
+
+    it('rejects invalid input', () => {
+      expect(() => hasTechniqueInBitmask(-1n, TechniqueId.FULL_HOUSE)).toThrow(
+        /technique bitmask/i
+      );
+      expect(() => hasTechniqueInBitmask(2n, 2.5 as TechniqueId)).toThrow(
+        /technique id/i
+      );
+    });
+  });
+
+  describe('techniqueBitmaskOf', () => {
+    it('prefers techniques_bitmask over the lossy techniques number', () => {
+      // What JSON.parse makes of the wire value.
+      const lossy = JSON.parse(`{"t":${HIGH_MASK_STRING}}`).t as number;
+      const board: Board = {
+        uuid: 'b',
+        level: 12,
+        symmetrical: false,
+        board: '0'.repeat(81),
+        solution: '0'.repeat(81),
+        techniques: lossy,
+        techniques_bitmask: HIGH_MASK_STRING,
+        created_at: null,
+        updated_at: null,
+      };
+      expect(techniqueBitmaskOf(board)).toBe(HIGH_MASK);
+    });
+
+    it('prefers techniques_bitfield_bitmask for technique examples', () => {
+      const example: TechniqueExample = {
+        uuid: 'e',
+        board: '0'.repeat(81),
+        pencilmarks: null,
+        solution: '0'.repeat(81),
+        techniques_bitfield: Number(HIGH_MASK),
+        techniques_bitfield_bitmask: HIGH_MASK_STRING,
+        primary_technique: 1,
+        hint_data: null,
+        source_board_uuid: null,
+        created_at: null,
+      };
+      expect(techniqueBitmaskOf(example)).toBe(HIGH_MASK);
+    });
+
+    it('falls back to the number when an older API omits the string', () => {
+      expect(techniqueBitmaskOf({ techniques: 42 })).toBe(42n);
+      expect(techniqueBitmaskOf({ techniques_bitfield: 6 })).toBe(6n);
+      expect(
+        techniqueBitmaskOf({ techniques: 42, techniques_bitmask: null })
+      ).toBe(42n);
+    });
+
+    it('returns 0n when both fields are null or missing', () => {
+      expect(
+        techniqueBitmaskOf({ techniques: null, techniques_bitmask: null })
+      ).toBe(0n);
+      expect(techniqueBitmaskOf({})).toBe(0n);
+    });
+
+    it('throws on a malformed string instead of guessing', () => {
+      expect(() =>
+        techniqueBitmaskOf({ techniques: 42, techniques_bitmask: 'x' })
+      ).toThrow(/technique bitmask/i);
+    });
+
+    it('accepts every response type that carries a bitmask', () => {
+      expectTypeOf<Board>().toExtend<TechniqueBitmaskSource>();
+      expectTypeOf<Daily>().toExtend<TechniqueBitmaskSource>();
+      expectTypeOf<TechniqueExample>().toExtend<TechniqueBitmaskSource>();
+      expectTypeOf<ValidateBoardData>().toExtend<TechniqueBitmaskSource>();
+    });
+  });
+
+  describe('companion *_bitmask fields are optional strings', () => {
+    it('matches the sudojo_api / solver wire', () => {
+      expectTypeOf<Board['techniques_bitmask']>().toEqualTypeOf<
+        string | null | undefined
+      >();
+      expectTypeOf<Daily['techniques_bitmask']>().toEqualTypeOf<
+        string | null | undefined
+      >();
+      expectTypeOf<
+        TechniqueExample['techniques_bitfield_bitmask']
+      >().toEqualTypeOf<string | undefined>();
+      expectTypeOf<ValidateBoardData['techniques_bitmask']>().toEqualTypeOf<
+        string | undefined
+      >();
+    });
+  });
+
+  describe('request bitmask fields accept number | string', () => {
+    it('widens each field and keeps its optionality and nullability', () => {
+      type Opt = Optional<number | string>;
+      expectTypeOf<BoardCreateRequest['techniques']>().toEqualTypeOf<Opt>();
+      expectTypeOf<BoardUpdateRequest['techniques']>().toEqualTypeOf<Opt>();
+      expectTypeOf<DailyCreateRequest['techniques']>().toEqualTypeOf<Opt>();
+      expectTypeOf<DailyUpdateRequest['techniques']>().toEqualTypeOf<Opt>();
+      expectTypeOf<
+        TechniqueExampleCreateRequest['techniques_bitfield']
+      >().toEqualTypeOf<number | string>();
+      expectTypeOf<
+        TechniqueExampleUpdateRequest['techniques_bitfield']
+      >().toEqualTypeOf<Opt>();
+      expectTypeOf<GameStartRequest['techniques']>().toEqualTypeOf<
+        number | string
+      >();
+      expectTypeOf<BoardQueryParams['techniques']>().toEqualTypeOf<Opt>();
+      expectTypeOf<BoardQueryParams['technique_bit']>().toEqualTypeOf<Opt>();
+    });
+
+    it('still accepts plain numbers (old callers)', () => {
+      const request: BoardCreateRequest = {
+        level: 3,
+        symmetrical: false,
+        board: '0'.repeat(81),
+        solution: '0'.repeat(81),
+        techniques: 6,
+      };
+      expect(parseTechniqueBitmask(request.techniques)).toBe(6n);
+    });
+
+    it('carries an exact 61-bit mask as a decimal string', () => {
+      const mask = techniqueBitmaskOf({ techniques_bitmask: HIGH_MASK_STRING });
+      const start: GameStartRequest = {
+        board: '0'.repeat(81),
+        solution: '0'.repeat(81),
+        level: 12,
+        techniques: formatTechniqueBitmask(mask),
+        puzzleType: 'level',
+      };
+      const example: TechniqueExampleCreateRequest = {
+        board: '0'.repeat(81),
+        pencilmarks: null,
+        solution: '0'.repeat(81),
+        techniques_bitfield: formatTechniqueBitmask(mask),
+        primary_technique: TechniqueId.GROUPED_X_CYCLES,
+        hint_data: null,
+        source_board_uuid: null,
+      };
+
+      expect(start.techniques).toBe(HIGH_MASK_STRING);
+      expect(parseTechniqueBitmask(start.techniques)).toBe(HIGH_MASK);
+      expect(parseTechniqueBitmask(example.techniques_bitfield)).toBe(
+        HIGH_MASK
+      );
+      // The JSON body keeps every digit.
+      expect(JSON.parse(JSON.stringify(start)).techniques).toBe(
+        HIGH_MASK_STRING
+      );
     });
   });
 });
@@ -1710,5 +2127,9 @@ describe('getTechniqueIconUrl', () => {
 
   it('should handle unknown technique ID with fallback name', () => {
     expect(getTechniqueIconUrl(999)).toBe('/technique.technique.999.svg');
+  });
+
+  it('should map AIC to the existing technique.aic.svg icon', () => {
+    expect(getTechniqueIconUrl(TechniqueId.AIC)).toBe('/technique.aic.svg');
   });
 });
