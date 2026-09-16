@@ -543,11 +543,16 @@ export interface UpdateStatsData {
   techniques: Record<number, number>;
 }
 
+/** Where the scanned image came from. Chooses the OCR route server-side. */
+export type OcrSource = 'camera' | 'library';
+
 /** Response data for /api/v1/ocr/extract */
 export interface OCRExtractData {
   board: SolverBoard;
   confidence: number;
   digitCount: number;
+  /** Which backend produced this result. Absent on older API versions. */
+  engine?: 'ml' | 'paddle';
 }
 
 /** Response data for DELETE /api/v1/practices (bulk delete) */
