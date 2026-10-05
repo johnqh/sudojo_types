@@ -1077,6 +1077,38 @@ export interface GenerateData {
 // Technique Bitfield (matches SudokuDefines.h enum SudokuTechnique)
 // =============================================================================
 
+// =============================================================================
+// Puzzle and level constants
+// =============================================================================
+
+/**
+ * Fewest givens a Sudoku can have and still have a unique solution. Clients
+ * refuse to validate, and scans reject, boards with fewer.
+ */
+export const MIN_CLUES = 17;
+
+/** Lowest difficulty level (belt). */
+export const MIN_LEVEL = 1;
+
+/** Highest difficulty level (belt). Levels run MIN_LEVEL..MAX_LEVEL. */
+export const MAX_LEVEL = 12;
+
+/** Whether `level` is an integer difficulty level in MIN_LEVEL..MAX_LEVEL. */
+export function isValidLevel(level: unknown): level is number {
+  return (
+    typeof level === 'number' &&
+    Number.isInteger(level) &&
+    level >= MIN_LEVEL &&
+    level <= MAX_LEVEL
+  );
+}
+
+/** Every difficulty level, ascending. */
+export const ALL_LEVELS: readonly number[] = Array.from(
+  { length: MAX_LEVEL - MIN_LEVEL + 1 },
+  (_, i) => MIN_LEVEL + i
+);
+
 /**
  * Technique IDs matching the solver engine's SudokuTechnique enum.
  * Used as bitfield values in boards.techniques and technique_examples.techniques_bitfield.

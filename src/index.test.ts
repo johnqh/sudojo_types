@@ -1,6 +1,11 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import {
   successResponse,
+  MIN_CLUES,
+  MIN_LEVEL,
+  MAX_LEVEL,
+  ALL_LEVELS,
+  isValidLevel,
   errorResponse,
   getBeltForLevel,
   getAllBelts,
@@ -2131,5 +2136,25 @@ describe('getTechniqueIconUrl', () => {
 
   it('should map AIC to the existing technique.aic.svg icon', () => {
     expect(getTechniqueIconUrl(TechniqueId.AIC)).toBe('/technique.aic.svg');
+  });
+});
+
+describe('level constants', () => {
+  it('spans levels 1 to 12', () => {
+    expect(MIN_LEVEL).toBe(1);
+    expect(MAX_LEVEL).toBe(12);
+    expect(ALL_LEVELS).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it('isValidLevel accepts only integers in range', () => {
+    expect(isValidLevel(1)).toBe(true);
+    expect(isValidLevel(12)).toBe(true);
+    for (const bad of [0, 13, 1.5, NaN, '3', null, undefined]) {
+      expect(isValidLevel(bad)).toBe(false);
+    }
+  });
+
+  it('MIN_CLUES is 17', () => {
+    expect(MIN_CLUES).toBe(17);
   });
 });
